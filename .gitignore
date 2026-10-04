@@ -12,6 +12,9 @@ backend/config/database.properties
 runner/judge0.conf
 *.log
 data/
+# Frontend data modules are source code, not local database files.
+!/frontend/src/data/
+!/frontend/src/data/**
 .idea/
 test-results/
 playwright-report/
