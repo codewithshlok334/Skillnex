@@ -30,7 +30,7 @@ spring:
 app:
   demo: ${DEMO_MODE:false}
   google-enabled: ${GOOGLE_ENABLED:false}
-  origin: ${APP_ORIGIN:http://localhost:5173}
+  origin: ${APP_ORIGIN:${RENDER_EXTERNAL_URL:http://localhost:5173}}
   jwt-secret: ${JWT_SECRET:}
   secure-cookie: ${SECURE_COOKIE:true}
   codelab:

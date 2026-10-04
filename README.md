@@ -2,7 +2,7 @@
 
 **Running on another computer?** Start with [NEW-SYSTEM-SETUP.md](NEW-SYSTEM-SETUP.md) for prerequisites, Gemini configuration, CodeLab setup and first launch.
 
-**Free personal-project hosting:** [FREE-DEPLOYMENT.md](docs/FREE-DEPLOYMENT.md) covers Vercel, Render and Neon. Local deployment files are prepared; no public site has been created. A cloud code runner and working email delivery need separate setup.
+**One website, one public link:** [FREE-DEPLOYMENT.md](docs/FREE-DEPLOYMENT.md) deploys the frontend and backend together on Render, using your Neon database and Gemini key. No Vercel account is needed. Deployment files are prepared; the public site still needs to be deployed. A cloud code runner and working email delivery need separate setup.
 
 **Updating your existing project?** Read [UPDATE_AND_CHECK.md](UPDATE_AND_CHECK.md) first to retain your database and private Gemini settings.
 

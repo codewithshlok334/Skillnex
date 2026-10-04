@@ -1,12 +1,12 @@
 # yaml-language-server: $schema=https://render.com/schema/render.yaml.json
-# Free API only. Neon supplies PostgreSQL separately; no paid disk/database is created.
+# One Free web service serves the frontend and API at the same public URL.
+# Neon supplies PostgreSQL separately; no paid disk/database is created.
 # Review docs/FREE-DEPLOYMENT.md before applying this Blueprint in your own account.
 services:
   - type: web
-    name: skillnex-api
+    name: skillnex
     runtime: docker
     plan: free
-    rootDir: backend
     dockerfilePath: ./Dockerfile
     dockerContext: .
     autoDeployTrigger: "off"
@@ -14,8 +14,8 @@ services:
     envVars:
       - key: PORT
         value: "8080"
-      - key: APP_ORIGIN
-        sync: false
+      # The application uses Render's own RENDER_EXTERNAL_URL for its origin.
+      # Set APP_ORIGIN manually only when using a custom domain.
       - key: DATABASE_URL
         sync: false
       - key: DATABASE_USER

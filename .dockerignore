@@ -1,0 +1,29 @@
+# Allow only the source needed by the combined website image.
+**
+!Dockerfile
+!.dockerignore
+!frontend/
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/index.html
+!frontend/tsconfig.json
+!frontend/vite.config.ts
+!frontend/src/
+!frontend/src/**
+!frontend/public/
+!frontend/public/**
+!backend/
+!backend/pom.xml
+!backend/src/
+!backend/src/**
+
+# Never include private configuration or database files, even inside source folders.
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/*.p12
+**/*.jks
+**/*.mv.db
+**/*.trace.db
+**/*.log

@@ -56,6 +56,15 @@ public class ApiErrors {
     );
   }
 
+  // Missing API/static paths must remain a real 404, never the SPA or a 500.
+  @ExceptionHandler({
+    org.springframework.web.servlet.resource.NoResourceFoundException.class,
+    org.springframework.web.servlet.NoHandlerFoundException.class,
+  })
+  ResponseEntity<?> notFound() {
+    return ResponseEntity.status(404).body(Map.of("message", "Not found."));
+  }
+
   @ExceptionHandler(Exception.class)
   ResponseEntity<?> unexpected(Exception e) {
     org.slf4j.LoggerFactory.getLogger(getClass()).error(

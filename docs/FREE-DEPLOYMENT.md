@@ -1,112 +1,83 @@
-# SkillNex: free personal-project deployment
+# SkillNex: one website on Render
 
-This setup moves the app off your laptop: Vercel serves the frontend, Render runs the Java API, and Neon stores PostgreSQL data. It is preparation for deployment in **your own accounts**. No account, cloud resource or public website is created by these local files.
+The frontend and Spring Boot backend deploy together as **one Free Render web service**, at one HTTPS address. Neon stores the database and Gemini supplies AI responses behind that website. You do not need Vercel or a second frontend deployment.
 
-**Free does not mean always awake.** Render Free sleeps after 15 idle minutes and can take about a minute to restart. It has monthly quotas, an ephemeral filesystem, and no persistent disk. Its free PostgreSQL expires after 30 days, so this configuration uses Neon instead. Free Render also blocks SMTP ports 25, 465 and 587. [Render Free documentation](https://render.com/docs/free)
+The repository's root `Dockerfile` builds React, bundles its files into the Java application, and starts one server. Pages and `/api` requests use the same origin. Refreshing a LinkedIn, interview or CodeLab page opens the app normally.
 
-Vercel Hobby is for personal, non-commercial use. Stay within its quotas; a commercial SkillNex launch needs another eligible hosting plan. [Vercel Hobby terms and limits](https://vercel.com/docs/plans/hobby)
+These files prepare deployment; they do not create a public site until you deploy them in your Render account.
 
-Neon's Free plan currently includes 1 GB of database storage and 100 CU-hours per project per month. Limits can change: confirm the Free plan in your account before creating anything. [Neon Free plan announcement](https://neon.com/blog/neon-free-plan-1-gb-per-project)
+## 1. Open Render and connect the repository
 
-## What this setup includes
+1. Sign in at <https://dashboard.render.com> using your GitHub account.
+2. Choose **New > Blueprint** and connect `codewithshlok334/Skillnex`, branch `main`.
+3. Use the root **`render.yaml`**. The Docker context is the repository root; do not select `backend` as Root Directory.
+4. The resource preview must show **one Free Docker web service**, named `skillnex`, with no Render database, disk or paid service.
 
-| Part | Hosting | What to expect |
-| --- | --- | --- |
-| Website and editor | Vercel Hobby | Public HTTPS frontend |
-| Login, profiles, resumes, saved chats and reports | Render API + Neon | Server data persists in PostgreSQL |
-| AI assistant, resume/LinkedIn text analysis, interviews | Render + your Gemini account | Requires valid models, key and available Google quota |
-| 50 CodeLab questions and saved coding drafts | Render + Neon | Included; independent of interview mode |
-| CodeLab Run / Submit | **Separate sandbox still required** | This free deployment does not execute Java/C++/Python submissions |
-| Password-reset email | **Not configured** | Do not promise email delivery until a compatible mail service is connected and tested |
+If you already created a Render service for this repository, update it instead of creating a duplicate: clear its old `backend` Root Directory and use `./Dockerfile` with context `.`. Keep its database credentials and JWT secret. Remove an old Vercel `APP_ORIGIN` override when switching to the Render address.
 
-Your laptop's Docker runner cannot keep cloud submissions working when that laptop is off. Do not expose its unauthenticated Piston port to the internet. Cloud code execution needs a separately deployed, isolated runner or an explicitly configured hosted runner; no such service or cost is included here.
+See [Render Blueprints](https://render.com/docs/infrastructure-as-code) and the [Blueprint reference](https://render.com/docs/blueprint-spec).
 
-## 1. Prepare clean source in a private repository
+## 2. Add private backend settings
 
-Use a private GitHub repository in your own account. Put the **contents** of the project folder at its root, so GitHub shows `render.yaml`, `backend`, `frontend`, `docs` and `scripts` together. Upload source files, not the ZIP itself.
-
-Keep these out of the repository:
-
-- `.env`, `backend/config/ai.properties`, `database.properties`, `codelab.properties`, `runner/.env` and other filled secrets.
-- `backend/data`, `.local-backups`, `.local-run`, `.local-runtime.json`, logs and personal database files.
-- `node_modules`, `dist`, `target`, previous ZIPs and generated local manifests.
-
-The supplied `.gitignore` helps, but review the actual upload. Files already committed are not removed just by adding an ignore rule. Enter cloud secrets in Render's environment settings, never in frontend code or `VITE_` variables. If a real secret was ever committed, rotate it before deployment.
-
-## 2. Create the Neon database
-
-1. Sign in to Neon and create a **Free** PostgreSQL project, preferably near the chosen Render region.
-2. Create/use one database for SkillNex. Keep its credentials private.
-3. Get the **direct/unpooled** database endpoint for the first setup and Flyway migrations. This application already uses a small server connection pool.
-4. Prepare these Render variables:
+The Blueprint prompts for these values. Enter them in Render, not GitHub, frontend files or chat.
 
 | Variable | Value |
 | --- | --- |
-| `DATABASE_URL` | A PostgreSQL **JDBC** URL, with Neon's required TLS options, for example `jdbc:postgresql://YOUR-NEON-HOST:5432/YOUR-DATABASE?sslmode=require` |
-| `DATABASE_USER` | The database role from Neon |
+| `DATABASE_URL` | Neon direct/unpooled endpoint in JDBC form: `jdbc:postgresql://YOUR-NEON-HOST:5432/YOUR-DATABASE?sslmode=require` |
+| `DATABASE_USER` | Your Neon database role |
 | `DATABASE_PASSWORD` | That role's password |
+| `AI_API_KEY` | Your existing Gemini API key |
+| `AI_MODEL` | A text model available to your Google project |
+| `GEMINI_LIVE_MODEL` | A Live model available to your Google project for voice interviews |
 
-Do not paste a `psql 'postgresql://user:password@...'` command into `DATABASE_URL`. Use the same host/database and keep the username/password in their separate variables. Retain the TLS options required by your Neon connection instructions; do not disable TLS to resolve an error.
+Use the host/database and required TLS options from your Neon connection details. The backend's small JDBC pool also runs Flyway migrations, so use the direct/unpooled endpoint for this setup. Do not paste a `psql` command or complete `postgresql://user:password@...` URI into the JDBC field. Username and password are separate variables.
 
-There is no need to manually create the application tables or 50 questions: the backend runs its migrations and question seed on startup. Your laptop's H2 database, accounts, resumes and chats **are not automatically transferred**. Use a new signup on the cloud app; any later data migration must be planned separately.
+The Blueprint generates `JWT_SECRET` and sets `DEMO_MODE=false` and `SECURE_COOKIE=true`. Keep that JWT secret between ordinary deployments. Do not enable the H2 `demo` Spring profile online.
 
-## 3. Establish the frontend's permanent origin
+**No website URL needs to be entered during setup.** The app reads its public origin from Render's automatic `RENDER_EXTERNAL_URL`. For a custom domain, set `APP_ORIGIN` to its exact HTTPS origin without a trailing slash. [Render's default environment variables](https://render.com/docs/environment-variables)
 
-Create a Vercel Hobby project from the private repository and choose `frontend` as its Root Directory. Use Vite, `npm ci`, `npm run build`, and output directory `dist`.
+Reuse your existing Neon project. The CLI's local `.env.local` is not automatically uploaded to Render; never upload it to GitHub. Neon setup also does not copy the laptop's H2 accounts, resumes or chats; those need a separate migration. A fresh cloud database receives the application tables and 50 coding questions at backend startup.
 
-Record its actual stable Production domain, such as `https://YOUR-PROJECT.vercel.app`. This is the `APP_ORIGIN` used below. Do not use a temporary deployment/preview URL or assume a project name is available before Vercel confirms it.
+## 3. Deploy the whole website
 
-The frontend and API configuration depend on each other's addresses. At this stage the site may not build or authenticate until its API routing is configured in step 5; it is not a finished deployment yet.
+Click **Deploy Blueprint**. Render builds the frontend and backend from the same commit. When deployment succeeds, open the service's actual `https://...onrender.com` address. That is the single SkillNex link to share.
 
-## 4. Create the Render API from the Blueprint
+Open `/actuator/health` at that address; it should return `{"status":"UP"}`. If it fails, inspect Render's logs for missing settings, database/TLS errors or memory issues. Do not switch to a demo database to hide an error.
 
-Import the same repository through Render's **Blueprint** flow, using the root `render.yaml`. Review the resource summary: it should contain exactly **one Free Docker web service**, with no Render database, persistent disk or paid service.
+The Blueprint disables automatic code deployments; later code changes need **Manual Deploy > Deploy latest commit**. Blueprint configuration changes can still trigger a sync. There is no separate frontend deployment or Vercel routing step.
 
-The Blueprint uses `rootDir: backend`, Dockerfile `./Dockerfile`, context `.`, and `/actuator/health`. It disables later automatic code deploys with `autoDeployTrigger: off`; **applying it still creates the service and starts its initial deployment**. `sync: false` fields are entered privately during initial setup, and the JWT signing secret is generated by Render. [Blueprint reference](https://render.com/docs/blueprint-spec), [root-directory behavior](https://render.com/docs/monorepo-support)
+## 4. Check the site
 
-Fill the requested values:
+- Create an account, log out, log in again, and check saved profile data.
+- Refresh `/app/linkedin` and a CodeLab/interview room directly.
+- Ask two consecutive AI questions and analyze a non-sensitive sample resume.
+- Allow microphone/camera for the public HTTPS address and test a real interview. Gemini Live model access and quota must work in your Google account.
+- Check CodeLab questions, search, theme and saved drafts.
+- Open the public link from another device with your laptop off.
 
-| Variable | What to enter |
+## What is included and what still needs setup
+
+| Part | Status after successful configuration and testing |
 | --- | --- |
-| `APP_ORIGIN` | The exact HTTPS Vercel Production origin from step 3, without a trailing slash |
-| `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD` | The Neon values from step 2 |
-| `AI_API_KEY` | Your own Gemini API key |
-| `AI_MODEL` | A text model currently available to that Google project |
-| `GEMINI_LIVE_MODEL` | A Live model currently available to that Google project; validate actual access before using voice interviews |
+| Website, login, profiles, resumes, chats and reports | One Render service with persistent data in Neon |
+| AI assistant, analysis and AI interviews | Uses your configured Gemini models and quota |
+| 50 CodeLab questions, editor and saved drafts | Included |
+| CodeLab Run / Submit | Requires a separate isolated cloud code runner |
+| Password-reset email | Requires a working mail service; not configured here |
+| Google / LinkedIn sign-in | Requires separate provider configuration |
 
-Keep `DEMO_MODE=false` and `SECURE_COOKIE=true`. Do not set `SPRING_PROFILES_ACTIVE=demo`: that selects a local H2 database. Leave the generated `JWT_SECRET` unchanged between ordinary deployments; rotating it signs everyone out.
+The laptop's Docker code runner cannot process cloud submissions while the laptop is off. Do not expose its unauthenticated port to the internet. A cloud runner must remain isolated from the web app and database.
 
-The Blueprint leaves Google/LinkedIn sign-in unconfigured and disables only the **mail health check**. Signup with email/password works independently of email delivery. Reset requests still show the application's generic response, but no reset email is delivered without a working mail service. Render Free's blocked SMTP ports mean standard SMTP credentials alone may not solve this: a permitted provider port or a future HTTPS email adapter is needed, followed by a real delivery test.
+Free Render blocks SMTP ports 25, 465 and 587. The Blueprint disables the mail health check; this does not enable email delivery. Test password reset after configuring a supported mail transport.
 
-The small-memory JVM, thread and connection settings are conservative starting settings for Render Free. They are **not a verified capacity guarantee**. Check startup and PDF/DOCX/AI workflows for memory errors before inviting users. The current app is intended to use one backend instance.
+## Free hosting limits
 
-Wait for deployment to finish. Record the real `https://YOUR-API.onrender.com` address. Its `/actuator/health` must return `{"status":"UP"}` after any cold start. If it fails, inspect Render logs for missing variables or PostgreSQL connection errors; never switch to the demo database to make cloud health appear green.
+Render Free sleeps after 15 minutes without traffic; the next visitor may wait about a minute while the whole website wakes. There are monthly quotas, no persistent local disk, and limited memory. The JVM/thread/database-pool settings are conservative defaults, not a capacity guarantee. Test uploads and AI workflows on the actual service. [Render Free documentation](https://render.com/docs/free)
 
-## 5. Connect the Vercel frontend to that API
+Use Neon for persistent data; Render local files can disappear on restart. Keep database backups and stay within Neon and Gemini account limits. No paid add-on, domain purchase, AI Gateway, Render database or persistent disk is included.
 
-Configure the supplied Vercel routing with the exact Render HTTPS origin. The frontend must send requests to its own `/api` path, which Vercel forwards to Render. Do not change browser calls to go directly to a separate API domain: the application uses same-origin cookies and origin checks.
+## Local development
 
-From the project root, substitute the actual Render origin and run:
+The two-terminal VS Code workflow and local Docker Compose workflow remain available. The root Dockerfile is the combined cloud website; `backend/Dockerfile` and `frontend/Dockerfile` still support the existing separate local containers.
 
-```powershell
-node scripts/configure-vercel.cjs https://YOUR-API.onrender.com
-```
-
-This writes `frontend/vercel.json` with the public API origin, same-origin proxy routes and SPA fallback. Commit that generated file without secrets and redeploy the frontend. Recheck `APP_ORIGIN` against the final Vercel Production URL. Only enable optional OAuth after registering callbacks for that same public frontend origin and testing the redirect/forwarded-host behavior.
-
-For later backend code changes, use Render's manual deploy action. In existing Render services, new `sync: false` variables must be added through the service's Environment settings. Keep frontend/backend versions compatible.
-
-## 6. Check the public website
-
-- Open the Vercel Production URL in Chrome over HTTPS, then create your own account.
-- Sign out, sign back in and confirm saved profile/resume/chat data returns.
-- Refresh a deep route, such as `/app/linkedin`; it should still load the app.
-- Ask two consecutive AI questions, then test one resume analysis with non-sensitive sample text.
-- Allow microphone/camera on the public origin and test a real interview. Local permissions do not automatically apply to the new domain; API key access and Live model quota must also work.
-- Check CodeLab questions, topic search, theme and draft persistence. Run/Submit remains unavailable until a cloud sandbox is connected.
-- Wait through an idle period and verify a later visit recovers after the API wakes up. A cold-start timeout can require retrying the page.
-- Turn the laptop off and open the public URL from another device. This verifies the app no longer depends on a laptop process.
-
-Use the providers' Free plans and included subdomains. Do not enable paid add-ons, buy a domain or upgrade a plan as part of this setup. Gemini usage has its own model/account limits; hosting being free does not make AI calls unlimited. Keep backups of important database data outside the only live database, and monitor storage/compute quotas.
-
-This document describes a limited free personal deployment, not a promise of uninterrupted production availability or completed cloud verification.
+The older `scripts/configure-vercel.cjs` is only for an optional separate Vercel deployment. It is not needed for this one-site setup.

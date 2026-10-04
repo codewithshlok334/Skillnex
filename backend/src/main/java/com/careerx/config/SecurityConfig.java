@@ -6,6 +6,8 @@ import java.util.*;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -13,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.StaticHeadersWriter;
 import org.springframework.web.cors.*;
 
 @Configuration
@@ -31,11 +34,23 @@ public class SecurityConfig {
     @Value("${app.origin}") String origin,
     ObjectProvider<ClientRegistrationRepository> registrations
   ) throws Exception {
+    // The API-only development build keeps its original route/security policy.
+    // The single-site Docker build adds the Vite output to classpath:/static.
+    boolean frontendBundled = new ClassPathResource("static/index.html").exists();
     http
       .csrf(c -> c.disable())
       .cors(c -> c.configurationSource(cors(origin)))
       .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-      .authorizeHttpRequests(a ->
+      .authorizeHttpRequests(a -> {
+        if (frontendBundled) {
+          String[] frontendPaths = {
+            "/", "/index.html", "/login", "/signup", "/forgot-password", "/reset-password",
+            "/demo", "/app", "/app/**", "/assets/**", "/audio/**", "/brand/**", "/images/**",
+            "/favicon.svg"
+          };
+          a.requestMatchers(HttpMethod.GET, frontendPaths).permitAll()
+            .requestMatchers(HttpMethod.HEAD, frontendPaths).permitAll();
+        }
         a
           .requestMatchers(
             "/api/auth/**",
@@ -48,8 +63,8 @@ public class SecurityConfig {
           .requestMatchers("/api/admin/**")
           .hasRole("ADMIN")
           .anyRequest()
-          .authenticated()
-      )
+          .authenticated();
+      })
       .exceptionHandling(e ->
         e
           .authenticationEntryPoint((r, s, x) -> {
@@ -68,8 +83,15 @@ public class SecurityConfig {
           .contentTypeOptions(c -> {})
           .frameOptions(f -> f.deny())
           .contentSecurityPolicy(c ->
-            c.policyDirectives("default-src 'none'; frame-ancestors 'none'")
+            c.policyDirectives(frontendBundled
+              ? "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
+                "img-src 'self' data: https:; font-src 'self'; media-src 'self' blob:; " +
+                "connect-src 'self' wss://generativelanguage.googleapis.com; " +
+                "object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+              : "default-src 'none'; frame-ancestors 'none'")
           )
+          .addHeaderWriter(new StaticHeadersWriter("Permissions-Policy", "camera=(self), microphone=(self), geolocation=()"))
+          .addHeaderWriter(new StaticHeadersWriter("Referrer-Policy", "strict-origin-when-cross-origin"))
       )
       .addFilterBefore(
         new SessionFilter(tokens, db, origin),
