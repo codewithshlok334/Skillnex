@@ -1,0 +1,18 @@
+# Copy this file to ai.properties in this directory, fill in your provider details,
+# then restart the backend. Never share or commit the file containing your key.
+# compatible = a provider with a compatible /chat/completions endpoint.
+# anthropic = a provider using the Anthropic Messages API.
+app.ai.provider=compatible
+app.ai.base-url=https://your-provider.example/v1
+app.ai.key=
+app.ai.model=
+# Optional: enables semantic community search on compatible providers.
+app.ai.embedding-model=
+# Real-time interviews only. Leave live-key blank to reuse a configured Google Gemini key.
+# The regular app.ai.model continues to handle text, follow-ups and reports.
+app.ai.live-key=
+app.ai.live-model=gemini-3.8-live
+# Optional LinkedIn basic-profile import. Fill only in your private ai.properties.
+app.linkedin.client-id=
+app.linkedin.client-secret=
+app.linkedin.redirect-uri=

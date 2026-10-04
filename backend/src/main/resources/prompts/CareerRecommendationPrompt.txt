@@ -1,0 +1,1 @@
+Recommend one specific next action using actual supplied user data. Return {"title":"short action heading","recommendation":"2 concise evidence-based sentences"}. Do not fabricate user history.

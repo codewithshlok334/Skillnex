@@ -1,0 +1,180 @@
+.meeting-room .interview-stage {
+  isolation: isolate;
+}
+.meeting-room .studio-person {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.female-interviewer,
+.female-interviewer-shade {
+  position: absolute;
+  inset: 0;
+}
+.female-interviewer img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 35%;
+  display: block;
+}
+.female-interviewer-shade {
+  background: linear-gradient(
+    180deg,
+    #0a111cba 0%,
+    #0a111c12 27%,
+    #0a111c05 45%,
+    #0a111cbd 75%,
+    #0a111cf2 100%
+  );
+}
+.female-interviewer-disclosure {
+  position: absolute;
+  right: 18px;
+  top: 54px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: #0a111c9c;
+  color: #edf2f9;
+  font-size: 9px;
+}
+.female-interviewer-wave {
+  position: absolute;
+  bottom: 48%;
+  right: 20px;
+  display: flex;
+  gap: 4px;
+  height: 28px;
+  align-items: center;
+  background: #111c2bb0;
+  border-radius: 8px;
+  padding: 9px;
+}
+.female-interviewer-wave i {
+  display: block;
+  width: 3px;
+  height: 4px;
+  background: #b7e8d8;
+  border-radius: 3px;
+}
+.female-interviewer.is-speaking .female-interviewer-wave i {
+  animation: female-voice-wave 0.5s ease-in-out infinite alternate;
+}
+@keyframes female-voice-wave {
+  from {
+    height: 4px;
+  }
+  to {
+    height: 22px;
+  }
+}
+.meeting-room .interviewer-status {
+  margin-top: auto;
+  margin-bottom: 12px;
+  background: #101722c9;
+  color: #f0f4fa;
+}
+.meeting-room .interview-caption {
+  margin-top: 0;
+  background: #0b111ae6;
+}
+.meeting-room .interview-stage-controls {
+  align-items: center;
+  gap: 12px;
+}
+.meeting-voice-choice {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  color: #cbd8e8;
+}
+.meeting-voice-choice select {
+  background: #151e2c;
+  color: #e5edf8;
+  border: 1px solid #5b687b;
+  border-radius: 5px;
+  padding: 6px;
+  font-size: 10px;
+  max-width: 210px;
+}
+.meeting-person-choice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #cbd8e8;
+}
+.meeting-person-choice select {
+  background: #202a38;
+  color: #edf3fa;
+  border: 1px solid #4b5c73;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+}
+@media (max-width: 600px) {
+  .female-interviewer-disclosure {
+    top: 87px;
+    right: 15px;
+  }
+  .meeting-voice-choice {
+    flex-wrap: wrap;
+  }
+  .meeting-voice-choice select {
+    max-width: 175px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .female-interviewer-wave i {
+    animation: none !important;
+  }
+}
+
+.female-interviewer .interviewer-mouth-motion {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 35%;
+}
+.meeting-room .female-interviewer-disclosure {
+  top: 78px;
+  right: 12px;
+  font-size: 9px;
+}
+.meeting-room .interview-stage .studio-person {
+  margin: 0;
+}
+.meeting-room .interviewer-status {
+  margin-top: auto;
+}
+.meeting-room .interview-stage-top {
+  min-height: 60px;
+  flex-shrink: 0;
+}
+.meeting-room .interview-caption,
+.meeting-room .interview-stage-controls,
+.meeting-room .interview-voice-note {
+  flex-shrink: 0;
+}
+.meeting-room .interview-stage .interviewer-status {
+  margin-top: max(90px, 14vh);
+}
+.meeting-expanded .interview-stage .interviewer-status {
+  margin-top: auto;
+}
+.meeting-room .meeting-voice-choice select {
+  max-width: min(210px, 100%);
+}
+.meeting-room .interview-stage-top { min-height: 20px; }
+.meeting-room .interview-stage .studio-question-heading { top: 44px; }
+.meeting-expanded .studio-camera-view { max-height: 120px; }
+.meeting-expanded .studio-camera-placeholder { padding: 10px; gap: 0; }
+.meeting-expanded .studio-camera-placeholder > svg { width: 48px; height: 48px; padding: 10px; }
+.meeting-expanded .studio-camera-placeholder > span, .meeting-expanded .studio-camera-placeholder > small { display: none; }
+.meeting-expanded .studio-camera-view:not(.camera-on) { height: 84px; }
+.meeting-room .studio-camera-view { width: 100%; }

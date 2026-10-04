@@ -1,0 +1,103 @@
+add('warmer-wait','Warmer Wait','Stacks','Medium',
+ 'For each daily temperature, find how many days you must wait for a strictly warmer day. If none follows, output zero.',
+ 'n, followed by n temperatures.', 'Print n waiting times.', ['1 ≤ n ≤ 200000','−100 ≤ temperature ≤ 100'],
+ 'Maintain a stack of unresolved indices with nonincreasing temperatures. A warmer reading resolves smaller readings on the stack.',
+ 'O(n) time, O(n) space.', ['Equal temperatures are not warmer.','Each index enters and leaves the stack at most once.'],
+ 'int n=f.i();int[]a=new int[n],ans=new int[n];ArrayDeque<Integer>st=new ArrayDeque<>();for(int i=0;i<n;i++){a[i]=f.i();while(!st.isEmpty()&&a[st.peek()]<a[i]){int j=st.pop();ans[j]=i-j;}st.push(i);}StringBuilder s=new StringBuilder();for(int x:ans)s.append(x).append(" ");System.out.println(s);',
+ 'int n;cin>>n;vector<int>a(n),ans(n),st;for(int i=0;i<n;i++){cin>>a[i];while(!st.empty()&&a[st.back()]<a[i]){int j=st.back();st.pop_back();ans[j]=i-j;}st.push_back(i);}for(int x:ans)cout<<x<<" ";',
+ 'n=ni();a=[ni() for _ in range(n)];ans=[0]*n;st=[]\nfor i,x in enumerate(a):\n while st and a[st[-1]]<x:j=st.pop();ans[j]=i-j\n st.append(i)\nprint(*ans)',
+ ['5\n20 21 19 19 25\n','3\n5 5 5\n','1\n0\n','4\n4 3 2 1\n','4\n-2 -1 0 1\n','5\n1 4 2 3 5\n'],['1 3 2 1 0','0 0 0'])
+
+add('next-taller','Next Taller','Stacks','Medium',
+ 'For each tower, report the height of the first strictly taller tower to its right. Use -1 if there is none.',
+ 'n, followed by n nonnegative tower heights.', 'Print n answers.', ['1 ≤ n ≤ 200000','0 ≤ height ≤ 10^9'],
+ 'Scan from right to left. Remove stack heights that are not strictly larger than the current tower. The remaining top is the nearest greater value.',
+ 'O(n) time, O(n) space.', ['Discard equal heights as well as smaller heights.','A monotonic stack keeps only useful candidates.'],
+ 'int n=f.i();long[]a=new long[n],ans=new long[n];for(int i=0;i<n;i++)a[i]=f.l();ArrayDeque<Long>st=new ArrayDeque<>();for(int i=n-1;i>=0;i--){while(!st.isEmpty()&&st.peek()<=a[i])st.pop();ans[i]=st.isEmpty()?-1:st.peek();st.push(a[i]);}StringBuilder s=new StringBuilder();for(long x:ans)s.append(x).append(" ");System.out.println(s);',
+ 'int n;cin>>n;vector<long long>a(n),ans(n),st;for(auto&x:a)cin>>x;for(int i=n-1;i>=0;i--){while(!st.empty()&&st.back()<=a[i])st.pop_back();ans[i]=st.empty()?-1:st.back();st.push_back(a[i]);}for(auto x:ans)cout<<x<<" ";',
+ 'n=ni();a=[ni() for _ in range(n)];ans=[-1]*n;st=[]\nfor i in range(n-1,-1,-1):\n while st and st[-1]<=a[i]:st.pop()\n if st:ans[i]=st[-1]\n st.append(a[i])\nprint(*ans)',
+ ['5\n2 1 4 3 5\n','3\n7 7 7\n','1\n0\n','4\n9 8 7 6\n','4\n1 2 3 4\n','4\n0 0 1 0\n'],['4 4 5 5 -1','-1 -1 -1'])
+
+add('price-span','Price Span','Stacks','Medium',
+ 'For each day, count the consecutive days ending today whose prices are all less than or equal to today’s price, including today.',
+ 'n, followed by n positive prices.', 'Print one span per day.', ['1 ≤ n ≤ 200000','1 ≤ price ≤ 10^9'],
+ 'Maintain indices with strictly decreasing prices. Pop prices no larger than today. The closest remaining index is the previous greater boundary.',
+ 'O(n) time, O(n) space.', ['Equal prices extend the span.','The answer is the distance to the previous strictly greater price.'],
+ 'int n=f.i();long[]a=new long[n];ArrayDeque<Integer>st=new ArrayDeque<>();StringBuilder s=new StringBuilder();for(int i=0;i<n;i++){a[i]=f.l();while(!st.isEmpty()&&a[st.peek()]<=a[i])st.pop();s.append(st.isEmpty()?i+1:i-st.peek()).append(" ");st.push(i);}System.out.println(s);',
+ 'int n;cin>>n;vector<long long>a(n);vector<int>st;for(int i=0;i<n;i++){cin>>a[i];while(!st.empty()&&a[st.back()]<=a[i])st.pop_back();cout<<(st.empty()?i+1:i-st.back())<<" ";st.push_back(i);}',
+ 'n=ni();a=[ni() for _ in range(n)];st=[];out=[]\nfor i,x in enumerate(a):\n while st and a[st[-1]]<=x:st.pop()\n out.append(i+1 if not st else i-st[-1]);st.append(i)\nprint(*out)',
+ ['6\n100 80 60 70 60 85\n','3\n5 5 5\n','1\n1\n','4\n4 3 2 1\n','4\n1 2 3 4\n','5\n2 1 2 1 2\n'],['1 1 1 2 1 5','1 2 3'])
+
+add('minimum-on-demand','Minimum on Demand','Stacks','Medium',
+ 'Process a stack with PUSH x, POP and MIN operations. MIN prints the current minimum or EMPTY. POP on an empty stack does nothing.',
+ 'q, followed by q operations, each on its own line.', 'Print one line for each MIN operation.',
+ ['1 ≤ q ≤ 200000','−10^9 ≤ pushed value ≤ 10^9','There is at least one MIN operation.'],
+ 'Store each value together with the minimum at the time it was pushed. Popping restores the preceding minimum automatically.',
+ 'O(q) time, O(q) space.', ['One stored minimum is insufficient after a pop.','Keep a minimum snapshot alongside each stack value.'],
+ 'int q=f.i();ArrayDeque<Long>st=new ArrayDeque<>();StringBuilder out=new StringBuilder();while(q-->0){String op=f.next();if(op.equals("PUSH")){long x=f.l();st.push(st.isEmpty()?x:Math.min(x,st.peek()));}else if(op.equals("POP")){if(!st.isEmpty())st.pop();}else out.append(st.isEmpty()?"EMPTY":Long.toString(st.peek())).append("\\n");}System.out.print(out);',
+ 'int q;cin>>q;vector<long long>st;while(q--){string op;cin>>op;if(op=="PUSH"){long long x;cin>>x;st.push_back(st.empty()?x:min(x,st.back()));}else if(op=="POP"){if(!st.empty())st.pop_back();}else if(st.empty())cout<<"EMPTY\\n";else cout<<st.back()<<"\\n";}',
+ 'q=ni();st=[]\nfor _ in range(q):\n op=next(data)\n if op=="PUSH":\n  x=ni();st.append(x if not st else min(x,st[-1]))\n elif op=="POP":\n  if st:st.pop()\n else:print(st[-1] if st else "EMPTY")',
+ ['7\nPUSH 4\nPUSH 2\nMIN\nPOP\nMIN\nPOP\nMIN\n','2\nPOP\nMIN\n','1\nMIN\n','5\nPUSH -2\nPUSH -2\nPOP\nMIN\nMIN\n','3\nPUSH 9\nPUSH 1\nMIN\n','4\nPUSH 0\nPOP\nPUSH 7\nMIN\n'],['2\n4\nEMPTY','EMPTY'])
+
+add('find-the-label','Find the Label','Binary search','Easy',
+ 'Find a target in a strictly increasing sorted array.', 'n and target, followed by n sorted distinct values.',
+ 'Print the target’s zero-based index, or -1.', ['1 ≤ n ≤ 200000','−10^9 ≤ target, value ≤ 10^9'],
+ 'Binary search the remaining interval. Comparing its middle value with the target discards half the candidates.',
+ 'O(log n) search time, O(n) input storage.', ['Sorted order rules out half the remaining values each step.','Be careful when updating inclusive boundaries.'],
+ 'int n=f.i();long t=f.l();long[]a=new long[n];for(int i=0;i<n;i++)a[i]=f.l();int l=0,r=n-1,ans=-1;while(l<=r){int m=l+(r-l)/2;if(a[m]==t){ans=m;break;}if(a[m]<t)l=m+1;else r=m-1;}System.out.println(ans);',
+ 'int n;long long t;cin>>n>>t;vector<long long>a(n);for(auto&x:a)cin>>x;int l=0,r=n-1,ans=-1;while(l<=r){int m=l+(r-l)/2;if(a[m]==t){ans=m;break;}if(a[m]<t)l=m+1;else r=m-1;}cout<<ans;',
+ 'n=ni();t=ni();a=[ni() for _ in range(n)];i=bisect_left(a,t)\nprint(i if i<n and a[i]==t else -1)',
+ ['5 6\n-2 0 3 6 9\n','3 4\n1 3 5\n','1 7\n7\n','1 0\n7\n','4 -5\n-5 -1 1 8\n','4 8\n-5 -1 1 8\n'],['3','-1'])
+
+add('first-not-smaller','First Not Smaller','Binary search','Easy',
+ 'Find the first position whose sorted array value is at least a target. If all values are smaller, return n.',
+ 'n and target, followed by n sorted integers (duplicates allowed).', 'Print the insertion position between 0 and n.',
+ ['1 ≤ n ≤ 200000','−10^9 ≤ target, value ≤ 10^9'],
+ 'Binary search a half-open interval [0,n). A value at least the target keeps the middle index as a candidate on the left.',
+ 'O(log n) search time, O(n) input storage.', ['Do not stop on the first equal value you encounter.','n is a valid answer.'],
+ 'int n=f.i();long t=f.l();long[]a=new long[n];for(int i=0;i<n;i++)a[i]=f.l();int l=0,r=n;while(l<r){int m=l+(r-l)/2;if(a[m]<t)l=m+1;else r=m;}System.out.println(l);',
+ 'int n;long long t;cin>>n>>t;vector<long long>a(n);for(auto&x:a)cin>>x;int l=0,r=n;while(l<r){int m=l+(r-l)/2;if(a[m]<t)l=m+1;else r=m;}cout<<l;',
+ 'n=ni();t=ni();a=[ni() for _ in range(n)]\nprint(bisect_left(a,t))',
+ ['5 3\n1 3 3 3 9\n','3 10\n1 2 3\n','1 0\n0\n','3 -5\n-2 0 1\n','4 2\n2 2 2 2\n','4 5\n1 3 7 9\n'],['1','3'])
+
+add('rotated-directory','Rotated Directory','Binary search','Medium',
+ 'A strictly increasing list was rotated at an unknown position. Find a target without sorting the list again.',
+ 'n and target, followed by the rotated array of distinct values.', 'Print the target’s zero-based index, or -1.',
+ ['1 ≤ n ≤ 200000','−10^9 ≤ target, value ≤ 10^9'],
+ 'At least one half around the middle is sorted. Determine whether the target belongs to that half, then discard the other half.',
+ 'O(log n) search time, O(n) input storage.', ['Distinct values let you identify the sorted half.','Check both its lower and upper bounds.'],
+ 'int n=f.i();long t=f.l();long[]a=new long[n];for(int i=0;i<n;i++)a[i]=f.l();int l=0,r=n-1,ans=-1;while(l<=r){int m=(l+r)/2;if(a[m]==t){ans=m;break;}if(a[l]<=a[m]){if(a[l]<=t&&t<a[m])r=m-1;else l=m+1;}else{if(a[m]<t&&t<=a[r])l=m+1;else r=m-1;}}System.out.println(ans);',
+ 'int n;long long t;cin>>n>>t;vector<long long>a(n);for(auto&x:a)cin>>x;int l=0,r=n-1,ans=-1;while(l<=r){int m=(l+r)/2;if(a[m]==t){ans=m;break;}if(a[l]<=a[m]){if(a[l]<=t&&t<a[m])r=m-1;else l=m+1;}else{if(a[m]<t&&t<=a[r])l=m+1;else r=m-1;}}cout<<ans;',
+ 'n=ni();t=ni();a=[ni() for _ in range(n)];l=0;r=n-1;ans=-1\nwhile l<=r:\n m=(l+r)//2\n if a[m]==t:ans=m;break\n if a[l]<=a[m]:\n  if a[l]<=t<a[m]:r=m-1\n  else:l=m+1\n else:\n  if a[m]<t<=a[r]:l=m+1\n  else:r=m-1\nprint(ans)',
+ ['6 2\n7 9 12 1 2 4\n','4 6\n3 4 1 2\n','1 5\n5\n','2 1\n2 1\n','5 5\n1 2 3 4 5\n','3 -2\n0 -2 -1\n'],['4','-1'])
+
+add('square-floor','Square Floor','Binary search','Easy',
+ 'Find the largest integer whose square does not exceed a given nonnegative number. Do not rely on rounding a floating-point square root.',
+ 'One integer x.', 'Print floor(sqrt(x)).', ['0 ≤ x ≤ 10^18'],
+ 'Binary search from 0 through 10^9. Compare using division when needed to avoid overflowing a square.',
+ 'O(log x) time, O(1) space.', ['All answers fit between 0 and 10^9.','For positive m, m ≤ x/m is equivalent to m*m ≤ x.'],
+ 'long x=f.l(),l=0,r=1000000000L,ans=0;while(l<=r){long m=(l+r)/2;if(m==0||m<=x/m){ans=m;l=m+1;}else r=m-1;}System.out.println(ans);',
+ 'long long x;cin>>x;long long l=0,r=1000000000LL,ans=0;while(l<=r){long long m=(l+r)/2;if(m==0||m<=x/m){ans=m;l=m+1;}else r=m-1;}cout<<ans;',
+ 'x=ni();l=0;r=10**9;ans=0\nwhile l<=r:\n m=(l+r)//2\n if m*m<=x:ans=m;l=m+1\n else:r=m-1\nprint(ans)',
+ ['30\n','1000000000000000000\n','0\n','1\n','999999999999999999\n','81\n'],['5','1000000000'])
+
+add('delivery-capacity','Delivery Capacity','Binary search','Hard',
+ 'Deliver ordered packages within d days. Each day takes a consecutive prefix of the remaining packages, with total weight at most capacity. Find the smallest capacity allowing delivery of all packages.',
+ 'n and d, followed by n positive weights.', 'Print the minimum capacity.', ['1 ≤ d ≤ n ≤ 200000','1 ≤ weight ≤ 10^9'],
+ 'Binary search capacity between the heaviest package and total weight. A greedy scan computes days needed for a candidate capacity; feasibility is monotonic.',
+ 'O(n log(sum(weights))) time, O(n) input space.', ['The capacity cannot be below the heaviest package.','A feasible capacity stays feasible when increased.'],
+ 'int n=f.i(),d=f.i();long[]a=new long[n];long l=0,r=0;for(int i=0;i<n;i++){a[i]=f.l();l=Math.max(l,a[i]);r+=a[i];}while(l<r){long m=l+(r-l)/2,load=0;int days=1;for(long x:a){if(load+x>m){days++;load=0;}load+=x;}if(days<=d)r=m;else l=m+1;}System.out.println(l);',
+ 'int n,d;cin>>n>>d;vector<long long>a(n);long long l=0,r=0;for(auto&x:a){cin>>x;l=max(l,x);r+=x;}while(l<r){long long m=l+(r-l)/2,load=0;int days=1;for(auto x:a){if(load+x>m){days++;load=0;}load+=x;}if(days<=d)r=m;else l=m+1;}cout<<l;',
+ 'n=ni();d=ni();a=[ni() for _ in range(n)];l=max(a);r=sum(a)\nwhile l<r:\n m=(l+r)//2;load=0;days=1\n for x in a:\n  if load+x>m:days+=1;load=0\n  load+=x\n if days<=d:r=m\n else:l=m+1\nprint(l)',
+ ['5 3\n2 4 3 5 2\n','3 1\n3 5 2\n','1 1\n9\n','3 3\n1 8 2\n','3 2\n1000000000 1000000000 1000000000\n','4 2\n2 2 2 2\n'],['7','10'])
+
+add('merge-reservations','Merge Reservations','Sorting','Medium',
+ 'Merge overlapping closed reservation intervals. Intervals that touch at an endpoint also merge.',
+ 'n, followed by n lines with start and end.', 'Print the number of merged intervals, then each merged interval in increasing start order.',
+ ['1 ≤ n ≤ 100000','−10^9 ≤ start ≤ end ≤ 10^9'],
+ 'Sort intervals by start. Extend the current merged interval while the next start is at most the current end; otherwise begin a new interval.',
+ 'O(n log n) time, O(n) space.', ['Sorting brings potential overlaps together.','Touching closed endpoints count as overlap.'],
+ 'int n=f.i();long[][]a=new long[n][2];for(int i=0;i<n;i++){a[i][0]=f.l();a[i][1]=f.l();}Arrays.sort(a,Comparator.comparingLong(x->x[0]));List<long[]>out=new ArrayList<>();for(long[]v:a){if(out.isEmpty()||v[0]>out.getLast()[1])out.add(v.clone());else out.getLast()[1]=Math.max(out.getLast()[1],v[1]);}StringBuilder s=new StringBuilder().append(out.size()).append("\\n");for(long[]v:out)s.append(v[0]).append(" ").append(v[1]).append("\\n");System.out.print(s);'.replace('out.getLast()','out.get(out.size()-1)'),
+ 'int n;cin>>n;vector<pair<long long,long long>>a(n),out;for(auto&v:a)cin>>v.first>>v.second;sort(a.begin(),a.end());for(auto v:a){if(out.empty()||v.first>out.back().second)out.push_back(v);else out.back().second=max(out.back().second,v.second);}cout<<out.size()<<"\\n";for(auto v:out)cout<<v.first<<" "<<v.second<<"\\n";',
+ 'n=ni();a=sorted((ni(),ni()) for _ in range(n));out=[]\nfor l,r in a:\n if not out or l>out[-1][1]:out.append([l,r])\n else:out[-1][1]=max(out[-1][1],r)\nprint(len(out))\nfor v in out:print(*v)',
+ ['4\n1 4\n3 6\n8 9\n9 12\n','2\n1 2\n4 5\n','1\n0 0\n','3\n1 9\n2 3\n4 7\n','3\n-3 -1\n-1 0\n5 5\n','2\n1 2\n1 2\n'],['2\n1 6\n8 12','2\n1 2\n4 5'])

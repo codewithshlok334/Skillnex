@@ -1,0 +1,13 @@
+# Copy to ai.properties; fill key and model for AI chat before starting the backend.
+# Never share ai.properties once it contains your key.
+app.ai.provider=compatible
+app.ai.base-url=https://generativelanguage.googleapis.com/v1beta/openai
+app.ai.key=
+# Use a Gemini model available to your project; a model ID is required.
+app.ai.model=
+app.ai.embedding-model=
+# Blank live-key reuses the Google Gemini key above.
+app.ai.live-key=
+# Optional voice interview: fill a Live model supported by your Google project.
+# Leave blank to keep Live voice unavailable while using chat/text interviews.
+app.ai.live-model=

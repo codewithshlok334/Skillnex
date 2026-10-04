@@ -1,0 +1,70 @@
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: never
+  forward-headers-strategy: framework
+spring:
+  config:
+    import: optional:file:./config/ai.properties,optional:file:./config/codelab.properties,optional:file:./config/database.properties
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/careerx}
+    username: ${DATABASE_USER:careerx}
+    password: ${DATABASE_PASSWORD:}
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USER:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+app:
+  demo: ${DEMO_MODE:false}
+  google-enabled: ${GOOGLE_ENABLED:false}
+  origin: ${APP_ORIGIN:http://localhost:5173}
+  jwt-secret: ${JWT_SECRET:}
+  secure-cookie: ${SECURE_COOKIE:true}
+  codelab:
+    provider: ${CODELAB_RUNNER:judge0}
+    runner-url: ${CODELAB_RUNNER_URL:}
+    runner-key: ${CODELAB_RUNNER_KEY:}
+    rapidapi-host: ${CODELAB_RAPIDAPI_HOST:}
+    java-id: ${CODELAB_JAVA_ID:62}
+    cpp-id: ${CODELAB_CPP_ID:54}
+    python-id: ${CODELAB_PYTHON_ID:71}
+    java-version: ${CODELAB_JAVA_VERSION:15.0.2}
+    cpp-version: ${CODELAB_CPP_VERSION:10.2.0}
+    python-version: ${CODELAB_PYTHON_VERSION:3.10.0}
+  mail-from: ${MAIL_FROM:noreply@careerx.example}
+  linkedin:
+    client-id: ${LINKEDIN_CLIENT_ID:}
+    client-secret: ${LINKEDIN_CLIENT_SECRET:}
+    redirect-uri: ${LINKEDIN_REDIRECT_URI:}
+  ai:
+    provider: ${AI_PROVIDER:compatible}
+    base-url: ${AI_BASE_URL:https://api.openai.com/v1}
+    key: ${AI_API_KEY:}
+    model: ${AI_MODEL:}
+    embedding-model: ${AI_EMBEDDING_MODEL:}
+    live-key: ${GEMINI_LIVE_API_KEY:}
+    live-model: ${GEMINI_LIVE_MODEL:gemini-3.8-live}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+logging:
+  level:
+    com.careerx: INFO

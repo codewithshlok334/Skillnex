@@ -1,0 +1,25 @@
+.logout-button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.sidebar-logout {
+  width: 100%;
+  margin-top: 12px;
+}
+
+@media (max-width: 760px) {
+  .app-shell .topbar {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 68px;
+    gap: 10px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .app-shell .topbar-actions {
+    flex-wrap: wrap;
+    margin-left: auto;
+  }
+}

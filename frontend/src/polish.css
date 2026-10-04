@@ -1,0 +1,433 @@
+/* Readable text contrast and consistent visual hierarchy across tools. */
+:root {
+  --muted: #777777;
+  --accent: #6d6d6d;
+  --accent-dark: #585858;
+}
+.page-title p,
+.section-title p,
+.stat-heading,
+.stat-card p,
+.resume-info > p,
+.resume-tags span,
+.card-footnote,
+.roadmap-summary,
+.roadmap-preview-item > span:nth-child(2),
+.roadmap-preview-item small,
+.question-preview p,
+.community-footer p,
+.activity-item p,
+.activity-item small,
+.ai-coach > small,
+.upcoming-card > p,
+.interview-meta,
+.app-footer,
+.demo-strip {
+  color: #797979;
+}
+.hero-copy > p,
+.hero-secondary,
+.hero-kicker {
+  color: #7d7d7d;
+}
+.hero-copy h2 {
+  color: #3e3e3e;
+}
+.resume-file > strong,
+.question-preview h3,
+.upcoming-card h3,
+.next-step strong,
+.ai-coach h2 {
+  color: #5e5e5e;
+}
+.ai-coach > p,
+.coach-context,
+.ai-coach .btn {
+  color: #7d7d7d;
+}
+.sidebar-coach p,
+.sidebar-coach a,
+.nav-label {
+  color: #898989;
+}
+.stat-heading {
+  font-size: 11px;
+}
+.stat-card p {
+  font-size: 9px;
+}
+.stat-value strong {
+  font-size: 33px;
+}
+.resume-info > p {
+  font-size: 12px;
+}
+.section-title h2 {
+  font-size: 16px;
+}
+.section-title p {
+  font-size: 11px;
+}
+.card-footnote {
+  font-size: 9px;
+}
+.resume-tags span {
+  font-size: 10px;
+}
+.resume-info .text-link {
+  font-size: 11px;
+}
+.roadmap-preview-item > span:nth-child(2) {
+  font-size: 10px;
+}
+.roadmap-preview-item small {
+  font-size: 8px;
+}
+.next-step strong {
+  font-size: 11px;
+}
+.next-step p {
+  font-size: 10px;
+}
+.question-preview h3 {
+  font-size: 12px;
+}
+.question-preview p {
+  font-size: 10px;
+}
+.community-footer p {
+  font-size: 9px;
+}
+.ai-coach > p {
+  font-size: 12px;
+}
+.ai-coach > small {
+  font-size: 8px;
+}
+.coach-context {
+  font-size: 10px;
+}
+.ai-coach .btn {
+  font-size: 10px;
+}
+.upcoming-card > p {
+  font-size: 10px;
+}
+.activity-item p {
+  font-size: 11px;
+}
+.activity-item small {
+  font-size: 9px;
+}
+.hero-copy > p {
+  font-size: 12px;
+}
+.hero-buttons .btn {
+  font-size: 11px;
+}
+.hero-secondary {
+  font-size: 10px;
+}
+.landing-nav nav,
+.landing-hero > p,
+.landing-benefits,
+.how-grid p,
+.feature-grid p,
+.faq details p,
+.final-cta p,
+.landing-footer p,
+.landing-footer > span:last-child {
+  color: #808080;
+}
+.landing-hero > h1 {
+  color: #3d3d3d;
+}
+.landing-hero h1 em {
+  color: #7e7e7e;
+}
+.landing-section > h2,
+.how-grid h3,
+.feature-grid h3,
+.faq h2,
+.final-cta h2 {
+  color: #5d5d5d;
+}
+.landing-badge,
+.landing-quote p,
+.faq summary {
+  color: #838383;
+}
+.landing-quote h2 {
+  color: #848484;
+}
+.feature-icon {
+  color: #929292;
+  background: #ebebeb;
+}
+.landing-hero {
+  background: radial-gradient(ellipse 70% 48% at 50% 48%, #f1f1f1, #ffffff00);
+}
+.product-heading h3,
+.product-banner h2 {
+  color: #767676;
+}
+.auth-story h1 {
+  color: #616161;
+}
+.auth-story h1 em {
+  color: #909090;
+}
+.auth-story > div > p,
+.auth-caption {
+  color: #868686;
+}
+.auth-legal {
+  color: #989898;
+}
+.question-detail > p,
+.answer-body > p,
+.ai-explanation > p,
+.community-banner p,
+.roadmap-hero p,
+.milestone-activities p {
+  color: #7e7e7e;
+}
+.question-list h2,
+.milestone-heading h2,
+.roadmap-hero h2 {
+  color: #666666;
+}
+.community-filters button {
+  color: #878787;
+}
+.author-line strong,
+.question-bottom,
+.question-bottom > a,
+.ai-label,
+.roadmap-note,
+.comments-card > p strong {
+  color: #888888;
+}
+.verified-label,
+.verified-banner {
+  color: #7c7c7c;
+}
+.pill.green {
+  color: #8f8f8f;
+}
+.pill.purple {
+  color: #808080;
+}
+.avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.photo-upload {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 13px auto 4px;
+}
+.mobile-close {
+  display: none;
+}
+.mobile-session-actions {
+  display: none;
+}
+.moderation-preview {
+  background: var(--soft);
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 16px 0;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+[data-theme='dark'] {
+  --muted: #a6a6a6;
+  --accent: #9d9d9d;
+  --accent-dark: #afafaf;
+}
+[data-theme='dark'] .page-title p,
+[data-theme='dark'] .section-title p,
+[data-theme='dark'] .stat-heading,
+[data-theme='dark'] .stat-card p,
+[data-theme='dark'] .resume-info > p,
+[data-theme='dark'] .resume-tags span,
+[data-theme='dark'] .card-footnote,
+[data-theme='dark'] .roadmap-summary,
+[data-theme='dark'] .roadmap-preview-item > span:nth-child(2),
+[data-theme='dark'] .roadmap-preview-item small,
+[data-theme='dark'] .question-preview p,
+[data-theme='dark'] .community-footer p,
+[data-theme='dark'] .activity-item p,
+[data-theme='dark'] .activity-item small,
+[data-theme='dark'] .ai-coach > small,
+[data-theme='dark'] .upcoming-card > p,
+[data-theme='dark'] .interview-meta,
+[data-theme='dark'] .app-footer,
+[data-theme='dark'] .demo-strip {
+  color: #aeaeae;
+}
+[data-theme='dark'] .hero-copy h2,
+[data-theme='dark'] .resume-file > strong,
+[data-theme='dark'] .question-preview h3,
+[data-theme='dark'] .upcoming-card h3,
+[data-theme='dark'] .next-step strong,
+[data-theme='dark'] .ai-coach h2 {
+  color: #c4c4c4;
+}
+[data-theme='dark'] .hero-copy > p,
+[data-theme='dark'] .hero-secondary,
+[data-theme='dark'] .hero-kicker,
+[data-theme='dark'] .ai-coach > p,
+[data-theme='dark'] .coach-context,
+[data-theme='dark'] .ai-coach .btn {
+  color: #a8a8a8;
+}
+@media (max-width: 1190px) {
+  .stat-heading {
+    font-size: 9px;
+  }
+  .stat-card p {
+    font-size: 8px;
+  }
+  .hero-copy > p {
+    font-size: 11px;
+  }
+  .resume-info > p {
+    font-size: 11px;
+  }
+  .section-title h2 {
+    font-size: 14px;
+  }
+  .section-title p {
+    font-size: 10px;
+  }
+  .resume-tags span {
+    font-size: 8px;
+  }
+  .card-footnote {
+    font-size: 8px;
+  }
+  .question-preview h3 {
+    font-size: 11px;
+  }
+  .question-preview p {
+    font-size: 9px;
+  }
+  .next-step strong {
+    font-size: 9px;
+  }
+  .next-step p {
+    font-size: 8px;
+  }
+  .community-footer p {
+    font-size: 8px;
+  }
+}
+@media (max-width: 1000px) {
+  .mobile-session-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+  .mobile-session-actions .session-clock {
+    font-size: 18px;
+    margin: 0;
+  }
+  .hero-copy > p {
+    font-size: 11px;
+  }
+}
+@media (max-width: 760px) {
+  .sidebar {
+    visibility: hidden;
+  }
+  .sidebar.open {
+    visibility: visible;
+  }
+  .mobile-close {
+    display: flex;
+    position: absolute;
+    right: 12px;
+    top: 28px;
+  }
+  .sidebar nav {
+    overflow-y: auto;
+  }
+  .sidebar-bottom {
+    flex-shrink: 0;
+  }
+}
+@media (max-width: 460px) {
+  .stat-heading {
+    font-size: 9px;
+  }
+  .stat-card p {
+    font-size: 8px;
+  }
+  .hero-copy > p {
+    font-size: 11px;
+    max-width: 270px;
+  }
+  .hero-copy h2 {
+    font-size: 25px;
+  }
+  .hero-buttons .btn {
+    font-size: 9px;
+  }
+  .hero-secondary {
+    font-size: 9px;
+  }
+  .hero-banner {
+    min-height: 265px;
+  }
+  .hero-copy h2 {
+    max-width: 315px;
+  }
+  .section-title p {
+    font-size: 9px;
+  }
+  .section-title h2 {
+    font-size: 14px;
+  }
+  .resume-info > p {
+    font-size: 10px;
+  }
+  .resume-tags span {
+    font-size: 8px;
+  }
+  .card-footnote {
+    font-size: 8px;
+  }
+  .roadmap-preview-item > span:nth-child(2) {
+    font-size: 8px;
+  }
+  .roadmap-preview-item small {
+    font-size: 7px;
+  }
+  .resume-info .text-link {
+    font-size: 9px;
+  }
+  .next-step strong {
+    font-size: 9px;
+  }
+  .question-preview h3 {
+    font-size: 11px;
+  }
+  .question-preview p {
+    font-size: 8px;
+  }
+  .ai-coach > p {
+    font-size: 12px;
+  }
+  .community-footer p {
+    font-size: 8px;
+  }
+}

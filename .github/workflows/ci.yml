@@ -1,0 +1,43 @@
+name: CareerX checks
+on: [push, pull_request]
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: careerx
+          POSTGRES_PASSWORD: test-only-password
+          POSTGRES_DB: careerx_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U careerx -d careerx_test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - run: mvn -B verify
+      - run: mvn -B test -Dspring.datasource.url=jdbc:postgresql://localhost:5432/careerx_test -Dspring.datasource.username=careerx -Dspring.datasource.password=test-only-password

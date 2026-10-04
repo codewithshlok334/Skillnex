@@ -1,0 +1,66 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+# Free API only. Neon supplies PostgreSQL separately; no paid disk/database is created.
+# Review docs/FREE-DEPLOYMENT.md before applying this Blueprint in your own account.
+services:
+  - type: web
+    name: skillnex-api
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeployTrigger: "off"
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: APP_ORIGIN
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_USER
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DEMO_MODE
+        value: "false"
+      - key: SECURE_COOKIE
+        value: "true"
+      - key: JAVA_TOOL_OPTIONS
+        value: "-XX:MaxRAMPercentage=50.0 -XX:InitialRAMPercentage=10.0 -XX:+UseSerialGC -XX:ActiveProcessorCount=1 -Duser.timezone=UTC"
+      - key: SERVER_TOMCAT_THREADS_MAX
+        value: "32"
+      - key: SERVER_TOMCAT_THREADS_MIN_SPARE
+        value: "4"
+      - key: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
+        value: "4"
+      - key: SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE
+        value: "0"
+      - key: SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT
+        value: "30000"
+      - key: SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT
+        value: "60000"
+      - key: AI_PROVIDER
+        value: compatible
+      - key: AI_BASE_URL
+        value: https://generativelanguage.googleapis.com/v1beta/openai
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        sync: false
+      # Choose a currently available Live model in your Google project before testing voice.
+      # GEMINI_LIVE_API_KEY is optional; the application can reuse AI_API_KEY for Gemini.
+      - key: GEMINI_LIVE_MODEL
+        sync: false
+      - key: GOOGLE_ENABLED
+        value: "false"
+      # No cloud code-execution sandbox is provisioned by this free Blueprint.
+      - key: CODELAB_RUNNER
+        value: judge0
+      - key: CODELAB_RUNNER_URL
+        value: ""
+      # Email delivery is not configured. This only removes mail from health checks.
+      - key: MANAGEMENT_HEALTH_MAIL_ENABLED
+        value: "false"

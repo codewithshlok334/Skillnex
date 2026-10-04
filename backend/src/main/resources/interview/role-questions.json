@@ -1,0 +1,492 @@
+{
+  "AI Engineer": {
+    "easy": [
+      "What is the difference between training a model and using it for inference?",
+      "How would you check whether an AI-generated answer is useful and grounded?"
+    ],
+    "medium": [
+      "Design a retrieval-based assistant for internal documents. How would you choose and evaluate retrieved context?",
+      "Your AI endpoint sometimes returns invalid JSON. How would you validate outputs and recover safely?"
+    ],
+    "hard": [
+      "An agent can call tools that change customer records. How would you constrain permissions and evaluate failures?",
+      "Reduce latency and cost for an AI service while preserving quality. What experiments and safeguards would you use?"
+    ]
+  },
+  "Android App Developer": {
+    "easy": [
+      "Explain an Activity lifecycle event and how it affects a screen.",
+      "When would you use local storage rather than making a network request?"
+    ],
+    "medium": [
+      "How would you preserve screen state across rotation and process recreation?",
+      "Design offline synchronization for notes. How would you handle conflicting edits?"
+    ],
+    "hard": [
+      "A screen becomes unresponsive on low-end devices. How would you find and fix the bottleneck?",
+      "Design reliable background uploads under battery and network constraints. How would you handle interruptions?"
+    ]
+  },
+  "Associate Cloud Engineer": {
+    "easy": [
+      "Explain the difference between a virtual machine and a managed service.",
+      "How do identity roles and permissions control access to cloud resources?"
+    ],
+    "medium": [
+      "A new application is unreachable. What would you check in networking, identity and logs?",
+      "How would you configure monitoring and a recovery plan for a small cloud application?"
+    ],
+    "hard": [
+      "A cloud bill suddenly doubles. How would you investigate without disrupting users?",
+      "A deployment exposes storage publicly. How would you contain it, investigate scope and prevent recurrence?"
+    ]
+  },
+  "Associate Software Engineer": {
+    "easy": [
+      "Explain a function you wrote and how inputs become outputs.",
+      "How do unit tests and integration tests differ?"
+    ],
+    "medium": [
+      "A bug cannot be reproduced locally. How would you investigate?",
+      "Design validation and error handling for a small user-registration feature."
+    ],
+    "hard": [
+      "A fix passes tests but breaks a related feature. How would you respond and improve coverage?",
+      "You inherit unfamiliar code with little documentation. How would you safely deliver an urgent change?"
+    ]
+  },
+  "Automation Test Engineer": {
+    "easy": [
+      "What makes a test suitable for automation?",
+      "Explain an assertion and a useful test fixture."
+    ],
+    "medium": [
+      "How would you diagnose a flaky browser test without adding longer waits?",
+      "Design automated coverage for an API with authentication, validation and retries."
+    ],
+    "hard": [
+      "Your CI suite takes two hours and misses regressions. How would you improve its coverage and execution?",
+      "How would you test concurrent requests, eventual consistency and recovery without nondeterministic results?"
+    ]
+  },
+  "Backend Developer": {
+    "easy": [
+      "What happens when a client sends a request to a REST endpoint?",
+      "How would you validate input before writing to a database?"
+    ],
+    "medium": [
+      "Design pagination and filtering for a large list endpoint.",
+      "How would you make a booking request safe to retry?"
+    ],
+    "hard": [
+      "Design a service that must remain correct when its cache and database disagree.",
+      "Traffic grows tenfold and requests slow down. How would you isolate bottlenecks and scale safely?"
+    ]
+  },
+  "Blockchain Developer": {
+    "easy": [
+      "Explain the difference between a transaction and a block.",
+      "Why is a private key different from a public address?"
+    ],
+    "medium": [
+      "How would you test access control and state transitions in a smart contract?",
+      "Explain a reentrancy risk and how you would reason about external calls."
+    ],
+    "hard": [
+      "Design an upgrade process for a contract holding valuable assets. What trust and recovery risks arise?",
+      "How would you handle chain reorganizations and duplicate events in a blockchain-backed application?"
+    ]
+  },
+  "Business Intelligence Analyst": {
+    "easy": [
+      "What is a KPI, and how would you define it unambiguously?",
+      "Explain dimensions and measures in a reporting model."
+    ],
+    "medium": [
+      "Two dashboards show different revenue totals. How would you reconcile them?",
+      "Design a data model and refresh strategy for a sales dashboard."
+    ],
+    "hard": [
+      "A metric rises after a tracking change. How would you separate real growth from measurement artifacts?",
+      "How would you provide consistent reporting across departments with conflicting definitions and access requirements?"
+    ]
+  },
+  "Cloud Architect": {
+    "easy": [
+      "Explain availability zones and why an application might use more than one.",
+      "What guides the choice between managed and self-managed databases?"
+    ],
+    "medium": [
+      "Design a cloud architecture for variable demand and a limited budget.",
+      "How would you agree recovery time and recovery point objectives with stakeholders?"
+    ],
+    "hard": [
+      "Design a multi-region recovery strategy and explain consistency, cost and operational trade-offs.",
+      "Plan migration of a stateful legacy application with minimal downtime and reversible cutover."
+    ]
+  },
+  "Cloud Developer": {
+    "easy": [
+      "How does a cloud function differ from a long-running service?",
+      "How should application secrets be supplied to cloud code?"
+    ],
+    "medium": [
+      "An event may be delivered more than once. How would you design its handler?",
+      "How would you implement and test retries with backoff for an external service?"
+    ],
+    "hard": [
+      "Design an event-driven workflow that recovers from partial failures across services.",
+      "How would you diagnose latency across a serverless workflow while controlling cost and sensitive log data?"
+    ]
+  },
+  "Cloud Engineer": {
+    "easy": [
+      "Explain the purpose of a subnet and a firewall rule.",
+      "What problem does infrastructure as code solve?"
+    ],
+    "medium": [
+      "How would you deploy consistently across development, staging and production?",
+      "A service reaches the internet but not its database. How would you investigate?"
+    ],
+    "hard": [
+      "Design an infrastructure change process with drift detection, review and rollback.",
+      "How would you rotate credentials and recover from an outage without creating broader access?"
+    ]
+  },
+  "Content Developer": {
+    "easy": [
+      "How do you identify the audience and purpose before writing?",
+      "What makes an instructional example clear and useful?"
+    ],
+    "medium": [
+      "Turn a technical feature into a beginner tutorial. How would you structure and validate it?",
+      "How would you measure whether content improves understanding rather than just attracting clicks?"
+    ],
+    "hard": [
+      "How would you prioritize, verify and version updates to a large content library after a product change?",
+      "How would you resolve conflicting sources while maintaining accuracy, accessibility and a consistent voice?"
+    ]
+  },
+  "Cyber Security Analyst": {
+    "easy": [
+      "How do a vulnerability and a security incident differ?",
+      "Which details in a suspicious login alert would you examine first?"
+    ],
+    "medium": [
+      "Walk through triage of possible phishing from alert to containment.",
+      "How would you distinguish a false positive from a real threat using endpoint and network evidence?"
+    ],
+    "hard": [
+      "Several weak alerts may indicate compromise. How would you correlate them and preserve evidence?",
+      "How would you prioritize containment during an incident while avoiding unnecessary business disruption?"
+    ]
+  },
+  "Cyber Security Engineer": {
+    "easy": [
+      "Explain least privilege with an application example.",
+      "How do authentication and authorization differ?"
+    ],
+    "medium": [
+      "How would you threat-model an application that handles file uploads?",
+      "Design secure storage and rotation of service credentials."
+    ],
+    "hard": [
+      "Design defense in depth for a system where one internal service may be compromised.",
+      "A critical dependency has a vulnerability with no patch. How would you assess exposure and deploy mitigations?"
+    ]
+  },
+  "Data Analyst": {
+    "easy": [
+      "How would you inspect missing values and duplicates?",
+      "Explain average and median using an example."
+    ],
+    "medium": [
+      "How can a SQL join accidentally inflate a reported total?",
+      "Design an analysis to understand a fall in customer retention."
+    ],
+    "hard": [
+      "An experiment appears successful but the user mix changed. How would you assess it?",
+      "Different datasets support conflicting conclusions. How would you validate assumptions and communicate uncertainty?"
+    ]
+  },
+  "Database Administrator": {
+    "easy": [
+      "Explain primary keys and foreign keys.",
+      "How does a backup differ from a replica?"
+    ],
+    "medium": [
+      "A query is slow. How would you use its execution plan to investigate?",
+      "How would you test a backup restore and confirm integrity?"
+    ],
+    "hard": [
+      "Plan an online schema change for a large busy table with rollback.",
+      "A database has locking, replication lag and rising storage use. How would you prioritize recovery?"
+    ]
+  },
+  "Data Scientist": {
+    "easy": [
+      "Explain training, validation and test datasets.",
+      "How do precision and recall differ, and when does each matter?"
+    ],
+    "medium": [
+      "How would you detect leakage in a predictive model?",
+      "Design a baseline and evaluation plan for imbalanced classification."
+    ],
+    "hard": [
+      "A model performs well offline but poorly after deployment. How would you investigate?",
+      "How would you compare models when labels are delayed and the data distribution changes?"
+    ]
+  },
+  "DevOps Engineer": {
+    "easy": [
+      "What is the purpose of a CI pipeline?",
+      "Explain a container image and a running container."
+    ],
+    "medium": [
+      "Design a deployment pipeline with tests, secrets and rollback.",
+      "An application works locally but fails in a container. What would you investigate?"
+    ],
+    "hard": [
+      "Design a rollout that limits risk when changing a stateful service.",
+      "How would you handle an incident caused by configuration drift while preserving evidence and recovery options?"
+    ]
+  },
+  "Embedded Systems Engineer": {
+    "easy": [
+      "What is an interrupt, and when is it useful?",
+      "Why do memory and timing constraints matter in embedded software?"
+    ],
+    "medium": [
+      "How would you debug intermittent sensor readings?",
+      "Design communication between an interrupt handler and the main task without corrupting shared data."
+    ],
+    "hard": [
+      "A real-time task occasionally misses its deadline. How would you diagnose scheduling and contention?",
+      "Design a firmware update process that survives power loss and recovers from a bad update."
+    ]
+  },
+  "Frontend Developer": {
+    "easy": [
+      "How do HTML, CSS and JavaScript work together?",
+      "When should component state be local rather than shared?"
+    ],
+    "medium": [
+      "How would you build an accessible form with asynchronous validation?",
+      "An older search response overwrites newer results. How would you prevent it?"
+    ],
+    "hard": [
+      "A page is slow on low-end mobile devices. What would you measure and optimize?",
+      "Design a resilient interface for intermittent connectivity, concurrent edits and failed requests."
+    ]
+  },
+  "Full Stack Developer": {
+    "easy": [
+      "Describe how a browser, API and database work together.",
+      "Where should input validation happen and why?"
+    ],
+    "medium": [
+      "Design a feature from interface through API to database storage.",
+      "How would you prevent duplicate submissions and keep the UI consistent after a timeout?"
+    ],
+    "hard": [
+      "Design an end-to-end booking system that prevents two users reserving the same slot.",
+      "An issue could be in the browser, API or database. How would you trace it and verify the fix?"
+    ]
+  },
+  "Graduate Engineer Trainee": {
+    "easy": [
+      "Describe an engineering project and your contribution.",
+      "How do you check whether a calculation or experiment result is reasonable?"
+    ],
+    "medium": [
+      "For an unfamiliar technical assignment, how would you plan learning, execution and verification?",
+      "How would you investigate a mismatch between a design expectation and a measured result?"
+    ],
+    "hard": [
+      "A deadline conflicts with unresolved quality concerns. How would you assess risk and communicate a plan?",
+      "Compare engineering solutions with competing cost, reliability and maintenance requirements."
+    ]
+  },
+  "iOS Developer": {
+    "easy": [
+      "Explain the role of a view and its state in an iOS application.",
+      "Why should UI work run on the main thread?"
+    ],
+    "medium": [
+      "How would you retain progress across app backgrounding and termination?",
+      "Design networking and error handling for a screen that fetches and updates data."
+    ],
+    "hard": [
+      "An app has rising memory usage and occasional crashes. How would you investigate retention and performance?",
+      "Design offline-first synchronization with conflict handling and safe background processing on iOS."
+    ]
+  },
+  "Java Developer": {
+    "easy": [
+      "Explain the difference between an interface and a class.",
+      "How do equals and hashCode relate when using a HashMap?"
+    ],
+    "medium": [
+      "Design validation and exception handling for a Java API.",
+      "Two threads update shared state. How would you prevent and test race conditions?"
+    ],
+    "hard": [
+      "A Java service has latency spikes and high memory use. How would you distinguish garbage collection, contention and database issues?",
+      "Design concurrent processing with backpressure, idempotency and graceful shutdown."
+    ]
+  },
+  "Machine Learning Engineer": {
+    "easy": [
+      "What is overfitting, and how would you recognize it?",
+      "Why should a model be compared with a simple baseline?"
+    ],
+    "medium": [
+      "How would you make feature processing consistent between training and serving?",
+      "Design evaluation for a model with imbalanced and noisy labels."
+    ],
+    "hard": [
+      "How would you deploy a model while controlling regression risk and monitoring drift?",
+      "A model is too slow and costly for production. How would you compare optimizations and validate their effects?"
+    ]
+  },
+  "MLOps Engineer": {
+    "easy": [
+      "Why version datasets, code and models together?",
+      "What is a model registry used for?"
+    ],
+    "medium": [
+      "Design a reproducible training pipeline with traceable artifacts.",
+      "How would you detect differences between training and production features?"
+    ],
+    "hard": [
+      "Design model promotion and rollback with delayed ground truth.",
+      "How would you investigate a quality incident involving drift, pipeline changes and serving infrastructure?"
+    ]
+  },
+  "Mobile / App Developer": {
+    "easy": [
+      "How would you structure a screen with loading, success and error states?",
+      "What should an app do when the network is unavailable?"
+    ],
+    "medium": [
+      "How would you choose between native and cross-platform development?",
+      "Design secure local storage and synchronization for user data."
+    ],
+    "hard": [
+      "An app has high battery use and slow startup. How would you isolate the causes?",
+      "How would you roll out a breaking API change while supporting older app versions?"
+    ]
+  },
+  "Network Engineer": {
+    "easy": [
+      "Explain DNS, IP addresses and ports.",
+      "How do a switch and a router differ?"
+    ],
+    "medium": [
+      "A device reaches an IP address but not a hostname. How would you investigate?",
+      "How would you segment a network while allowing necessary traffic?"
+    ],
+    "hard": [
+      "Users report intermittent packet loss across sites. How would you locate the failing segment?",
+      "Plan a network change with redundant paths, limited downtime and tested rollback."
+    ]
+  },
+  "QA Engineer": {
+    "easy": [
+      "How do severity and priority differ for a defect?",
+      "How would you write a reproducible bug report?"
+    ],
+    "medium": [
+      "Design login tests including negative and boundary cases.",
+      "How would you prioritize testing near a release deadline?"
+    ],
+    "hard": [
+      "How would you separate product defects from test and environment issues in intermittent failures?",
+      "Design risk-based tests for a distributed feature with retries, permissions and partial failures."
+    ]
+  },
+  "Salesforce Administrative": {
+    "easy": [
+      "Explain objects, fields and records in Salesforce.",
+      "How do object permissions differ from record-level access?"
+    ],
+    "medium": [
+      "How would you choose configuration and automation for an approval workflow?",
+      "How would you import data while detecting duplicates and preserving relationships?"
+    ],
+    "hard": [
+      "Users have unexpected access after a role change. How would you investigate and correct it safely?",
+      "Plan an automation change with sandbox tests, deployment validation and recovery."
+    ]
+  },
+  "SAP Consultant": {
+    "easy": [
+      "How would you clarify a business process before proposing an SAP solution?",
+      "What is master data, and why does quality matter?"
+    ],
+    "medium": [
+      "Map a business requirement to configuration and tests in your SAP module.",
+      "How would you investigate a failed transaction crossing two business processes?"
+    ],
+    "hard": [
+      "Plan migration of inconsistent legacy data with validation and reconciliation.",
+      "A customization conflicts with maintainability and upgrades. How would you compare alternatives with stakeholders?"
+    ]
+  },
+  "Site Engineer": {
+    "easy": [
+      "How would you check that site work matches approved drawings?",
+      "What belongs in a daily site progress report?"
+    ],
+    "medium": [
+      "How would you investigate mismatches between material quantities and site consumption?",
+      "Plan coordination of subcontractors whose activities depend on each other."
+    ],
+    "hard": [
+      "Work is late and a quality issue appears. How would you assess options without compromising safety or specifications?",
+      "How would you manage an unexpected ground-condition change, document impact and coordinate an approved response?"
+    ]
+  },
+  "Software Engineer": {
+    "easy": [
+      "Explain a data structure you used and why it suited the problem.",
+      "What makes a function easy to test and maintain?"
+    ],
+    "medium": [
+      "How would you review and test a change to a shared library?",
+      "Design an API contract that evolves without breaking clients."
+    ],
+    "hard": [
+      "Design a reliable workflow when messages can be delayed or duplicated.",
+      "How would you sequence improvements to a live legacy system and measure risk reduction?"
+    ]
+  },
+  "System Engineer": {
+    "easy": [
+      "What roles do CPU, memory, storage and networking play in performance?",
+      "Why are configuration and patch inventories useful?"
+    ],
+    "medium": [
+      "A server is unreachable after a configuration change. How would you investigate?",
+      "Design monitoring and backup checks for production servers."
+    ],
+    "hard": [
+      "Several systems fail after a shared dependency changes. How would you isolate the cause and recover?",
+      "Plan a capacity upgrade and disaster-recovery exercise for a critical system with limited downtime."
+    ]
+  },
+  "UX Designer": {
+    "easy": [
+      "How does a user goal differ from a requested feature?",
+      "What makes an interface accessible beyond appearance?"
+    ],
+    "medium": [
+      "Plan a usability study for confusing onboarding.",
+      "How would you turn research findings into a testable design hypothesis?"
+    ],
+    "hard": [
+      "Research conflicts with business priorities. How would you compare options and communicate trade-offs?",
+      "Design a complex workflow for different skill levels and validate it beyond satisfaction ratings."
+    ]
+  }
+}

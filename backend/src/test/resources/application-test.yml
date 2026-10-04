@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:careerx-test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;NON_KEYWORDS=VALUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ''
+app:
+  demo: false
+  origin: http://localhost:5173
+  secure-cookie: false
+  jwt-secret: integration-test-only-secret-of-at-least-32-characters

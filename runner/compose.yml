@@ -1,0 +1,31 @@
+name: skillnex-codelab
+services:
+  piston:
+    image: ${PISTON_IMAGE:-ghcr.io/engineer-man/piston:latest}
+    # Required by upstream Isolate to create namespaces and cgroups inside the Linux VM.
+    privileged: true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:2000:2000"
+    mem_limit: 1536m
+    cpus: 2
+    environment:
+      PISTON_DISABLE_NETWORKING: "true"
+      PISTON_MAX_CONCURRENT_JOBS: "2"
+      PISTON_MAX_PROCESS_COUNT: "64"
+      PISTON_OUTPUT_MAX_SIZE: "65536"
+      PISTON_MAX_FILE_SIZE: "1048576"
+      PISTON_COMPILE_TIMEOUT: "10000"
+      PISTON_COMPILE_CPU_TIME: "10000"
+      # Ceiling accommodates Java's source compilation. The backend still sends
+      # 5s wall / 3s CPU per Python or C++ run, 15s / 10s for Java including javac.
+      PISTON_RUN_TIMEOUT: "15000"
+      PISTON_RUN_CPU_TIME: "10000"
+      PISTON_COMPILE_MEMORY_LIMIT: "536870912"
+      PISTON_RUN_MEMORY_LIMIT: "268435456"
+    volumes:
+      - packages:/piston/packages
+    tmpfs:
+      - /tmp:exec,size=256m
+volumes:
+  packages:

@@ -1,0 +1,13 @@
+ALTER TABLE app_users ADD COLUMN last_active_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE app_users ADD CONSTRAINT user_role_valid CHECK (role IN ('STUDENT','FACULTY','ADMIN'));
+ALTER TABLE interviews ADD CONSTRAINT interview_status_valid CHECK (status IN ('SCHEDULED','ACTIVE','COMPLETED','CANCELLED'));
+ALTER TABLE interviews ADD CONSTRAINT interview_difficulty_valid CHECK (difficulty IN ('Easy','Medium','Hard'));
+ALTER TABLE interviews ADD CONSTRAINT interview_kind_valid CHECK (kind IN ('HR','Technical','Behavioral','Mixed'));
+ALTER TABLE interviews ADD CONSTRAINT interview_duration_valid CHECK (duration BETWEEN 5 AND 90);
+CREATE INDEX idx_question_created ON questions(hidden,created_at);
+CREATE INDEX idx_answer_user ON answers(user_id,hidden);
+CREATE INDEX idx_vote_answer ON votes(answer_id);
+CREATE INDEX idx_report_status ON reports(status,created_at);
+CREATE INDEX idx_interview_reminder ON interviews(status,scheduled_at);
+CREATE INDEX idx_roadmap_user ON career_roadmaps(user_id,created_at);
+CREATE INDEX idx_analysis_resume ON resume_analyses(resume_id,created_at);

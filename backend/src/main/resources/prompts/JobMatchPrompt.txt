@@ -1,0 +1,1 @@
+Compare supplied resume with job description. Return {"score":0-100,"matchingSkills":["..."],"missingSkills":["..."],"keywords":["..."],"projects":["recommended project ideas"],"topics":["preparation topics"]}. Score is indicative, not a hiring prediction.

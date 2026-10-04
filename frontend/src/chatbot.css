@@ -1,0 +1,299 @@
+.assistant-widget {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 45;
+}
+.assistant-widget[hidden],
+.assistant-widget-panel[hidden] {
+  display: none;
+}
+.assistant-widget-trigger {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-left: auto;
+  border: 1px solid #9f9f9f;
+  background: #696969;
+  color: white;
+  border-radius: 30px;
+  padding: 14px 20px;
+  font-weight: 600;
+  box-shadow: 0 7px 28px #2d2d2d35;
+}
+.assistant-widget-trigger:hover {
+  background: #575757;
+}
+.assistant-widget-trigger:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+}
+.assistant-widget-panel {
+  width: min(450px, calc(100vw - 32px));
+  height: min(710px, calc(100dvh - 116px));
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  box-shadow: 0 18px 70px #1a1a1a30;
+}
+.assistant-widget-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px;
+  background: #292929;
+  color: #f7f7f7;
+  flex-shrink: 0;
+}
+.assistant-widget-header h2 {
+  margin: 0;
+  font-size: 17px;
+  color: #f7f7f7;
+}
+.assistant-widget-header p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #c6c6c6;
+}
+.assistant-widget-header .icon-button {
+  color: #f7f7f7;
+}
+.assistant-window-controls {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.assistant-widget.is-maximized {
+  right: 16px;
+  bottom: 16px;
+  width: min(1100px, calc(100vw - 32px));
+}
+.assistant-widget.is-maximized .assistant-widget-panel {
+  width: 100%;
+  height: calc(100dvh - 104px);
+}
+.assistant-widget.is-maximized .assistant-messages {
+  padding: 24px;
+}
+.assistant-widget.is-maximized .chat-message {
+  font-size: 14px;
+}
+.assistant-widget.is-maximized .assistant-composer textarea {
+  font-size: 14px;
+}
+.assistant-wait-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.assistant-wait-actions .assistant-thinking {
+  padding: 8px 0;
+}
+.assistant-slow-note {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 0 0 12px;
+}
+.assistant-widget-mark {
+  display: grid;
+  place-items: center;
+  background: #a5a5a524;
+  color: #cfcfcf;
+  border-radius: 12px;
+  width: 42px;
+  height: 42px;
+}
+.assistant-compact,
+.assistant-compact .assistant-layout,
+.assistant-compact .assistant-chat {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.assistant-compact .assistant-layout {
+  gap: 0;
+}
+.assistant-compact .assistant-chat {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+.assistant-quick-actions {
+  padding: 8px 14px;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.assistant-quick-actions > span {
+  margin-right: auto;
+  font-size: 10px;
+}
+.assistant-quick-actions .btn {
+  font-size: 10px;
+  padding: 6px 8px;
+}
+.assistant-compact .assistant-messages {
+  min-height: 80px;
+  max-height: none;
+  flex: 1;
+  padding: 16px;
+  overscroll-behavior: contain;
+}
+.assistant-compact .assistant-welcome {
+  padding: 6px 0;
+}
+.assistant-compact .assistant-welcome .ai-orb {
+  width: 45px;
+  height: 45px;
+  margin-bottom: 12px;
+}
+.assistant-compact .assistant-welcome h2 {
+  font-size: 19px;
+}
+.assistant-compact .assistant-welcome > p {
+  font-size: 12px;
+  margin: 8px 0 14px;
+}
+.assistant-compact .assistant-starters {
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+}
+.assistant-compact .assistant-starters button {
+  font-size: 11px;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.assistant-compact .assistant-starters span {
+  display: none;
+}
+.assistant-compact .assistant-composer {
+  padding: 14px;
+  flex-shrink: 0;
+}
+.assistant-compact .assistant-composer > label {
+  font-size: 11px;
+}
+.assistant-compact .assistant-composer textarea {
+  margin: 6px 0 9px;
+  max-height: 120px;
+  min-height: 65px;
+  font-size: 12px;
+}
+.assistant-compact .assistant-compose-actions {
+  gap: 8px;
+}
+.assistant-compact .assistant-profile {
+  font-size: 10px;
+  gap: 5px;
+}
+.assistant-compact .assistant-compose-actions .btn {
+  font-size: 11px;
+  padding: 8px 10px;
+}
+.assistant-compact .assistant-compose-actions > span {
+  display: none;
+}
+.assistant-compact .assistant-composer > p {
+  font-size: 9px;
+  margin-top: 8px;
+}
+.assistant-compact .chat-message {
+  font-size: 12px;
+  padding: 12px;
+  margin-bottom: 14px;
+  max-width: 100%;
+}
+.assistant-compact .assistant-setup {
+  margin: 10px;
+  padding: 12px;
+  max-height: 170px;
+  overflow-y: auto;
+}
+.assistant-compact .error-box {
+  margin: 8px 12px;
+  padding: 12px;
+  max-height: 100px;
+  overflow-y: auto;
+}
+.chat-reply {
+  min-width: 0;
+}
+.chat-prose {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.chat-reply-heading {
+  font-weight: 700;
+  margin: 12px 0 6px;
+}
+.chat-prose code {
+  font-family: Consolas, monospace;
+  font-size: 0.92em;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: var(--purple);
+}
+.chat-code {
+  margin: 12px 0;
+  background: #1f1f1f;
+  color: #ededed;
+  border: 1px solid #4a4a4a;
+  border-radius: 10px;
+  overflow: hidden;
+  white-space: normal;
+}
+.chat-code > span {
+  display: block;
+  padding: 7px 12px;
+  border-bottom: 1px solid #4a4a4a;
+  color: #b8b8b8;
+  font-size: 11px;
+}
+.chat-code pre {
+  padding: 12px;
+  margin: 0;
+  overflow-x: auto;
+  white-space: pre;
+  line-height: 1.6;
+}
+.chat-code code {
+  font-family: Consolas, monospace;
+  font-size: 12px;
+}
+@media (max-width: 600px) {
+  .assistant-widget {
+    right: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  .assistant-widget-panel {
+    width: calc(100vw - 24px);
+    height: min(680px, calc(100dvh - 100px));
+  }
+  .assistant-widget-trigger {
+    padding: 12px 17px;
+  }
+  .assistant-widget-header {
+    padding: 13px 16px;
+  }
+}
+
+.assistant-compact,
+.assistant-compact .assistant-layout,
+.assistant-compact .assistant-chat {
+  width: 100%;
+  align-items: stretch;
+}

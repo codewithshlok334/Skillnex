@@ -1,0 +1,30 @@
+SKILLNEX - COMPLETE PROJECT - 4 OCTOBER 2026
+Craft Your Resume. Crack Your Interview
+
+This is the full editable project, including frontend, backend, 50 CodeLab
+questions, database migrations, assets, tests and the latest fixes.
+
+NEW WINDOWS COMPUTER:
+1. Extract the ZIP completely. Do not run files from inside the ZIP viewer.
+2. Install Node.js 22.12+ or 24, Java JDK 21 and Maven 3.9+.
+   Set JAVA_HOME and make java, mvn and npm available in PATH.
+3. Open SkillNex.code-workspace in VS Code.
+4. In its terminal run:
+      cd frontend
+      npm.cmd ci
+      cd ..
+5. For AI, follow NEW-SYSTEM-SETUP.md to configure your own Gemini key locally.
+6. For CodeLab Run/Submit, install/open Docker Desktop with WSL 2 Linux engine,
+   then run START-CODELAB.cmd BEFORE starting the backend for the first time.
+   First-time runner downloads need internet and can take time.
+7. Double-click START-SKILLNEX.cmd. Wait for both servers to be ready.
+8. Open http://127.0.0.1:5173/login in Chrome.
+   Choose Student demo, or create your own account.
+
+Read NEW-SYSTEM-SETUP.md for AI configuration, manual startup, troubleshooting,
+what is included and the checks already completed.
+
+Private API keys, existing accounts/resumes/chats/database, installed dependencies
+and this laptop's tool paths are intentionally NOT inside this shareable ZIP.
+Fresh sample accounts and questions are created when the demo backend first runs.
+Normal AI requests need internet plus a valid provider key and quota.

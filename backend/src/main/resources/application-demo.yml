@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/careerx-demo;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;NON_KEYWORDS=VALUE
+    username: sa
+    password: ''
+app:
+  demo: true
+  origin: http://localhost:5173,http://127.0.0.1:5173
+  secure-cookie: false
+  jwt-secret: local-demo-only-change-before-deploying-careerx-2026
+management:
+  health:
+    mail:
+      enabled: false
+

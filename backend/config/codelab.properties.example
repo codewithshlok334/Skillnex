@@ -1,0 +1,9 @@
+# Copy to codelab.properties. Keep credentials out of Git and out of frontend code.
+# Use a self-hosted Judge0 CE sandbox, or an explicitly selected hosted provider.
+app.codelab.runner-url=http://127.0.0.1:2358
+app.codelab.runner-key=REPLACE_WITH_YOUR_SANDBOX_TOKEN
+app.codelab.java-id=62
+app.codelab.cpp-id=54
+app.codelab.python-id=71
+# For RapidAPI only, also set the host supplied by your chosen plan:
+# app.codelab.rapidapi-host=judge0-ce.p.rapidapi.com

@@ -1,0 +1,82 @@
+/* Shared accents keep the workspace connected to the public site's design. */
+:root[data-theme='dark'] {
+  --bg:#0a1015; --surface:#121c23; --soft:#1a2830; --text:#edf4f4;
+  --muted:#a1b1bb; --line:#2b3c44; --accent:#71eddc; --accent-dark:#a0f9e8;
+  --purple:#163631; --primary-ink:#09221e; --focus-ring:#71eddc;
+}
+:root[data-theme='light'] {
+  --accent:#116b66; --accent-dark:#0b514e; --purple:#def1eb;
+  --primary-ink:#ffffff; --focus-ring:#116b66;
+}
+:root .app-shell .brand-mark { background:var(--accent); color:var(--primary-ink); }
+:root .app-shell .nav-item.active { color:var(--accent); background:var(--purple); box-shadow:inset 2px 0 var(--accent); }
+:root .app-shell .hero-buttons .btn-primary { background:var(--accent); border-color:var(--accent); color:var(--primary-ink); }
+:root .app-shell .hero-buttons .btn-primary:hover { background:var(--accent-dark); }
+:root .app-shell :is(.card,.stat-card) { border-radius:14px; }
+:root .app-shell .hero-banner { border-radius:16px; }
+:root[data-theme='dark'] .app-shell .hero-banner { background:radial-gradient(ellipse at 95% 0%,#71eddc0c,transparent 65%),var(--surface); }
+:root .app-shell .topbar { border-bottom:1px solid var(--line); }
+:root .assistant-widget-trigger { background:var(--accent); border:1px solid var(--accent); color:var(--primary-ink); border-radius:12px; }
+:root .assistant-widget-trigger:hover { background:var(--accent-dark); color:var(--primary-ink); }
+:root .auth-story { background:radial-gradient(ellipse at 20% 90%,#1f655b55,transparent 60%),#0c171e; color:#edf4f4; }
+:root .auth-story :is(.brand,.eyebrow) { color:#dbe8e6; }
+:root .auth-story h1 em,:root .auth-story .brand-x { color:#71eddc; }
+:root .auth-story .brand-mark { background:#71eddc; color:#09221e; }
+:root .auth-story :is(p,.auth-caption) { color:#a9c1c3; }
+:root .auth-form-wrap { background:var(--bg); }
+:root .auth-page input:focus { border-color:var(--accent); }
+::selection { background:#71eddc; color:#09221e; }
+
+/* Shared SkillNex identity: the supplied artwork and a crisp, accessible wordmark. */
+:root .brand.skillnex-brand { display:inline-flex; align-items:center; gap:9px; white-space:nowrap; letter-spacing:-1.1px; }
+:root .skillnex-mark { display:block; width:44px; height:44px; object-fit:contain; flex-shrink:0; }
+:root .skillnex-wordmark { display:inline; font-weight:800; }
+:root .skillnex-wordmark > span { color:#00cddd; }
+:root[data-theme='light'] .app-shell .skillnex-wordmark > span { color:#007e89; }
+:root .campus-site .skillnex-headline { font-size:clamp(42px,4.6vw,66px); line-height:1.08; letter-spacing:-2.8px; max-width:600px; }
+:root .campus-site .skillnex-headline span { color:#00dfe7; }
+:root .campus-site .orbit-core { transform:none; background:radial-gradient(circle,#12323c99,#09141c88); }
+:root .skillnex-orbit-mark { width:90%; height:90%; object-fit:contain; filter:drop-shadow(0 0 18px #00dfe725); }
+@media(max-width:700px) {
+  :root .campus-site .skillnex-headline { font-size:clamp(40px,10.5vw,62px); letter-spacing:-2px; }
+  :root .campus-nav .skillnex-mark { width:32px; height:36px; }
+  :root .campus-nav .brand.skillnex-brand { gap:6px; font-size:22px; }
+}
+
+/* Quiet surfaces and distinct tool colors, with the same accessible card links. */
+:root .campus-site .campus-tool.ocean { --tool-accent:#9acbff; --tool-top:#18364e; --tool-bottom:#102331; --tool-border:#315574; }
+:root .campus-site .campus-tool.violet { --tool-accent:#c6b3ff; --tool-top:#35294c; --tool-bottom:#201d31; --tool-border:#574775; }
+:root .campus-site .campus-tool.rose { --tool-accent:#ffb6cd; --tool-top:#472934; --tool-bottom:#2e1d26; --tool-border:#704251; }
+:root .campus-site .campus-tool.forest { --tool-accent:#9be2bd; --tool-top:#203d31; --tool-bottom:#172b25; --tool-border:#3b6550; }
+:root .campus-site .campus-tool.amber { --tool-accent:#f3ce96; --tool-top:#443725; --tool-bottom:#2d271d; --tool-border:#6c5738; }
+:root .campus-site .campus-tool.sky { --tool-accent:#9edfe7; --tool-top:#1e3a41; --tool-bottom:#172a30; --tool-border:#39616b; }
+:root .campus-site .campus-tool {
+  background:linear-gradient(145deg,var(--tool-top),var(--tool-bottom));
+  border-color:var(--tool-border); border-radius:12px; box-shadow:none;
+  transition:transform .18s,border-color .18s;
+}
+:root .campus-site .campus-tool::after { display:none; }
+:root .campus-site .campus-tool:hover { border-color:var(--tool-accent); box-shadow:none; transform:translateY(-3px); }
+:root .campus-site .campus-tool:focus-visible { outline:2px solid var(--tool-accent); outline-offset:4px; }
+:root .campus-site .campus-tool .campus-tool-icon { color:var(--tool-accent); background:#ffffff08; border-color:var(--tool-border); border-radius:10px; }
+:root .campus-site .campus-tool-top > small { color:var(--tool-accent); opacity:.85; }
+:root .campus-site .campus-tool h3 { font-weight:650; letter-spacing:-.35px; color:#f5f6f7; }
+:root .campus-site .campus-tool p { color:#c4ccd2; }
+:root .campus-site .campus-tool-action { color:var(--tool-accent); border-color:#ffffff18; }
+:root .campus-site .campus-tool:hover .campus-tool-action svg { color:var(--tool-accent); }
+:root .campus-site .skillnex-headline { font-weight:720; letter-spacing:-2.5px; }
+:root .campus-site .campus-nav { box-shadow:none; border-radius:12px; }
+:root .campus-site .campus-button { box-shadow:none; border-radius:8px; }
+:root .campus-site .campus-outline { border-radius:8px; }
+:root .campus-site .orbit-core { animation:none; transform:none; box-shadow:inset 0 1px 0 #ffffff10,0 16px 38px #0003; }
+:root .campus-site .orbit-node { transform:none; box-shadow:0 8px 24px #0002; }
+:root .campus-site .orbit-node:hover { transform:translateY(-3px); }
+:root .campus-site .orbit-ring { box-shadow:none; }
+:root .campus-site .ring-three { animation:none; }
+:root .campus-site .orbit-ring::after { box-shadow:none; }
+:root .campus-site .orbit-halo { opacity:.4; box-shadow:none; }
+:root .campus-site .orbit-grid { opacity:.45; }
+:root .campus-site .skillnex-orbit-mark { filter:none; }
+@media(prefers-reduced-motion:reduce) {
+  :root .campus-site .campus-tool:hover,:root .campus-site .orbit-node:hover { transform:none; }
+}

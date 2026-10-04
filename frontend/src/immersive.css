@@ -1,0 +1,152 @@
+.ambient-depth-field,
+.ambient-cursor-light {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+.ambient-depth-field {
+  opacity: 0.8;
+}
+.ambient-cursor-light {
+  --beam-x: 70vw;
+  --beam-y: 25vh;
+  background: radial-gradient(
+    450px circle at var(--beam-x) var(--beam-y),
+    #ffffff07,
+    transparent 80%
+  );
+  mix-blend-mode: screen;
+}
+.ambient-scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #646464, #eeeeee);
+  z-index: 65;
+  transform: scaleX(0);
+  transform-origin: left;
+  pointer-events: none;
+}
+.ambient-motion-toggle {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 44;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 9px 12px;
+  border-radius: 22px;
+  border: 1px solid #ffffff24;
+  background: #282828ed;
+  color: #dedede;
+  font-size: 10px;
+  box-shadow: 0 4px 15px #00000025;
+  backdrop-filter: blur(12px);
+}
+.ambient-motion-toggle.in-workspace {
+  left: 240px;
+}
+.ambient-motion-toggle:hover {
+  border-color: #aaaaaa;
+}
+.ambient-motion-toggle:focus-visible {
+  outline: 2px solid #bcbcbc;
+  outline-offset: 4px;
+}
+:root[data-immersive='off'] .ambient-cursor-light {
+  display: none;
+}
+:root[data-immersive='off'] .career-scene * {
+  animation-play-state: paused !important;
+}
+:root[data-immersive='off'] .career-scene .scene-plane {
+  transform: none !important;
+}
+:root[data-immersive='on'] [data-reveal] {
+  transition:
+    opacity 0.7s ease,
+    translate 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+:root[data-immersive='on'] [data-reveal='pending'] {
+  opacity: 0;
+  translate: 0 24px;
+}
+:root[data-immersive='on'] [data-reveal='visible'] {
+  opacity: 1;
+  translate: 0 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  :root[data-immersive='on'] [data-depth-card] {
+    position: relative;
+    transform: perspective(1100px) rotateX(var(--depth-x, 0deg)) rotateY(var(--depth-y, 0deg));
+    transition:
+      transform 0.24s ease-out,
+      box-shadow 0.24s ease;
+  }
+  :root[data-immersive='on'] [data-depth-card].depth-active {
+    box-shadow:
+      0 18px 34px #00000020,
+      0 1px 0 #ffffff0c;
+  }
+  :root[data-immersive='on'] [data-depth-card]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(
+      280px circle at var(--sheen-x, 50%) var(--sheen-y, 50%),
+      #ffffff12,
+      transparent 75%
+    );
+    transition: opacity 0.2s;
+  }
+  :root[data-immersive='on'] [data-depth-card].depth-active::after {
+    opacity: 1;
+  }
+}
+@media (max-width: 1190px) {
+  .ambient-motion-toggle.in-workspace {
+    left: 220px;
+  }
+}
+@media (max-width: 760px) {
+  .ambient-motion-toggle.in-workspace,
+  .ambient-motion-toggle {
+    left: 14px;
+    bottom: 18px;
+    min-height: 38px;
+  }
+  .ambient-cursor-light {
+    display: none;
+  }
+  .ambient-depth-field {
+    opacity: 0.5;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ambient-depth-field,
+  .ambient-cursor-light {
+    display: none;
+  }
+  :root [data-reveal] {
+    opacity: 1 !important;
+    translate: none !important;
+    transition: none !important;
+  }
+  :root [data-depth-card] {
+    transform: none !important;
+    transition: none !important;
+  }
+}
+:root[data-immersive] .scene-caption button {
+  display: none;
+}
