@@ -39,6 +39,7 @@ import { AssistantWidget } from '../components/AssistantWidget';
 import { useWorkspaceTheme } from '../hooks/useWorkspacePreferences';
 import { WorkspaceSettings } from '../components/WorkspaceSettings';
 import '../logout.css';
+import '../workspace-navigation.css';
 export function Logo() {
   return (
     <span className="brand skillnex-brand" aria-label="SkillNex">
@@ -173,7 +174,7 @@ export function AppLayout() {
             aria-label="Close navigation"
           />
         )}
-        {!inCodeLab && <aside className={'sidebar ' + (mobile ? 'open' : '')}>
+        {!inCodeLab && <aside className={'sidebar ' + (mobile ? 'open' : '')} aria-label="Workspace navigation" tabIndex={0}>
           <Link to="/app" className="logo-link">
             <Logo />
           </Link>
@@ -193,7 +194,7 @@ export function AppLayout() {
             <ChevronDown size={15} />
           </div>
           <div className="nav-label">WORKSPACE</div>
-          <nav>
+          <nav aria-label="Workspace tools">
             {nav.map((n) => (
               <NavLink
                 key={n.path}

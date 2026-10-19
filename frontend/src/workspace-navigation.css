@@ -1,0 +1,23 @@
+/* One scroll area keeps every workspace link and account action reachable,
+   including at browser zoom and on short mobile screens. */
+.app-shell > .sidebar {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+  padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  scroll-padding-block: 16px;
+}
+.app-shell > .sidebar > * { flex-shrink: 0; }
+.app-shell > .sidebar > nav { overflow: visible; }
+.app-shell > .sidebar .nav-item { gap: 8px; padding-inline: 10px; }
+.app-shell > .sidebar .nav-item > span { white-space: nowrap; }
+.app-shell > .sidebar .nav-item > svg,
+.app-shell > .sidebar .nav-item > em { flex-shrink: 0; }
+.app-shell > .sidebar:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.app-shell > .sidebar::-webkit-scrollbar { width: 6px; }
+.app-shell > .sidebar::-webkit-scrollbar-thumb { background: var(--line); border-radius: 6px; }
