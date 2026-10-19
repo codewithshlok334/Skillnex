@@ -30,6 +30,7 @@ import { Dialog } from "../components/ui/dialog";
 import { date, timestamp } from "../utils/cn";
 import { InterviewExperience } from "../components/InterviewExperience";
 import { InterviewReportView } from "../components/InterviewReportView";
+import { finishInterview } from "../utils/interviewFlow";
 import "../interactive-interview.css";
 import { interviewRoles as roles } from "../data/interviewRoles";
 export function Interviews() {
@@ -436,6 +437,8 @@ export function InterviewRoom() {
   const [error, setError] = useState<unknown>(null);
   const [confirm, setConfirm] = useState(false);
   const [interviewer, setInterviewer] = useState("female");
+  const [autoStartVoice, setAutoStartVoice] = useState(false);
+  const completionPending = useRef(false);
   const actionPending = useRef(false);
   async function action(path: string, data?: unknown) {
     if (actionPending.current) return false;
@@ -452,7 +455,7 @@ export function InterviewRoom() {
     setError(null);
     try {
       const result = await post("/interviews/" + id + "/" + path, data);
-      if (path === "report") await q.refetch();
+      if (path === "report") client.setQueryData(["interview", id], (previous: Data) => ({...previous, report:result}));
       else client.setQueryData(["interview", id], result);
       client.invalidateQueries({ queryKey: ["interviews"] });
       client.invalidateQueries({ queryKey: ["dashboard"] });
@@ -464,6 +467,13 @@ export function InterviewRoom() {
       actionPending.current = false;
       setBusy("");
     }
+  }
+  async function completeInterview() {
+    if (completionPending.current || actionPending.current) return;
+    completionPending.current = true;
+    setConfirm(false);
+    try { await finishInterview(action); }
+    finally { completionPending.current = false; }
   }
   if (q.isLoading) return <Loading />;
   if (q.error || !q.data) return <ErrorState error={q.error} />;
@@ -543,7 +553,7 @@ export function InterviewRoom() {
                 <span>
                   <strong>Speak or type your answer</strong>
                   <small>
-                    Choose Start voice interview, allow your mic, and say hello to test it.
+                    Choose Start AI interview and allow your mic. The interviewer speaks first; you answer when they finish.
                   </small>
                 </span>
               </div>
@@ -581,7 +591,7 @@ export function InterviewRoom() {
             <div className="button-row">
               {!aiUnavailable && (
                 <Button
-                  onClick={() => action("start?interviewer=" + interviewer)}
+                  onClick={() => { setAutoStartVoice(true); void action("start?interviewer=" + interviewer); }}
                   disabled={!!busy}
                 >
                   <Play size={16} />
@@ -590,9 +600,7 @@ export function InterviewRoom() {
               )}
               <Button
                 variant={aiUnavailable ? "default" : "secondary"}
-                onClick={() =>
-                  action("start?mode=PRACTICE&interviewer=" + interviewer)
-                }
+                onClick={() => { setAutoStartVoice(false); void action("start?mode=PRACTICE&interviewer=" + interviewer); }}
                 disabled={!!busy}
               >
                 <Play size={16} />
@@ -613,6 +621,8 @@ export function InterviewRoom() {
           busy={busy}
           action={action}
           onEnd={() => setConfirm(true)}
+          onComplete={() => { void completeInterview(); }}
+          autoStartVoice={autoStartVoice}
         />
       ) : interview.status === "COMPLETED" ? (
         report ? (
@@ -620,16 +630,16 @@ export function InterviewRoom() {
         ) : (
           <Card>
             <Empty
-              title="You showed up. That matters."
+              title={busy ? "Preparing your interview analysis…" : "Your interview is complete."}
               description={
                 practice
                   ? "Your answers are saved. Open your conversation and self-review checklist."
-                  : "Your answers are saved. Generate your feedback when you’re ready."
+                  : busy ? "Reviewing your answers, strengths and areas to improve." : "Your answers are saved. Open or retry your analysis below."
               }
               action={
                 <Button onClick={() => action("report")} disabled={!!busy}>
                   <Sparkles size={16} />
-                  {practice
+                  {busy ? "Preparing analysis…" : practice
                     ? "Open practice review"
                     : "Generate interview report"}
                 </Button>
@@ -659,12 +669,7 @@ export function InterviewRoom() {
         <div className="button-row">
           <Button
             disabled={!!busy}
-            onClick={async () => {
-              if (await action("end")) {
-                setConfirm(false);
-                await action("report");
-              }
-            }}
+            onClick={() => { void completeInterview(); }}
           >
             Complete interview
             <Check size={15} />

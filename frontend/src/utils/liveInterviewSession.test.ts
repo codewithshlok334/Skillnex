@@ -61,7 +61,7 @@ describe("Live interview lifecycle", () => {
   });
   it("persists an answer through the existing backend before returning the next question to Gemini", async () => {
     const ws = await connect();
-    const next = {...interview, transcript:[{...interview.transcript[0],answer:"I built an API."},{id:"q2",question:"Why that approach?"}]};
+    const next = {...interview, spokenPrompt:"Thank you for your effort. Your next question is: Why that approach?", acknowledgement:"Thank you for your effort.", transcript:[{...interview.transcript[0],answer:"I built an API."},{id:"q2",question:"Why that approach?"}]};
     vi.mocked(api).mockResolvedValue(next);
     ws.message({serverContent:{inputTranscription:{text:"I built an API."}}});
     ws.message({toolCall:{functionCalls:[{id:"call1", name:"submit_answer", args:{questionId:"q1",answer:"Wrong paraphrase"}}]}});
@@ -70,6 +70,7 @@ describe("Live interview lifecycle", () => {
     expect(JSON.parse(String(request[1]?.body)).text).toBe("I built an API.");
     expect(saved).toHaveBeenLastCalledWith(next);
     expect(ws.sent.at(-1)!.toolResponse.functionResponses[0].response.questionId).toBe("q2");
+    expect(ws.sent.at(-1)!.toolResponse.functionResponses[0].response.spokenPrompt).toBe(next.spokenPrompt);
     expect(snapshot.input).toBe("");
   });
   it("keeps the transcript and closes audio/socket when saving fails", async () => {
@@ -86,6 +87,7 @@ describe("Live interview lifecycle", () => {
     await vi.advanceTimersByTimeAsync(12001);
     expect(snapshot.state).toBe("LISTENING"); expect(Socket.all).toHaveLength(1);
     expect(ws.sent.some(m => m.clientContent)).toBe(true);
+    expect(ws.sent.find(m => m.clientContent)!.clientContent.turns[0].parts[0].text).toContain("Speak first now");
     expect(audio.close).not.toHaveBeenCalled();
   });
   it("reports a device with no capture frames without contacting Gemini", async () => {
@@ -149,5 +151,30 @@ describe("Live interview lifecycle", () => {
     expect(audio.open).toHaveBeenCalledTimes(1); expect(Socket.all).toHaveLength(2);
     expect(next.sent.some(m => m.realtimeInput)).toBe(false);
     session.stop(); await vi.advanceTimersByTimeAsync(120000); expect(Socket.all).toHaveLength(2);
+  });
+  it("opens analysis only after the final acknowledgement finishes playing", async () => {
+    const ws = await connect();
+    const closingMessage = "Thank you for your effort. We will now prepare your analysis.";
+    vi.mocked(api).mockResolvedValue({...interview, closingMessage, transcript:[{...interview.transcript[0], answer:"My final answer"}]});
+    ws.message({toolCall:{functionCalls:[{id:"final",name:"submit_answer",args:{questionId:"q1",answer:"My final answer"}}]}});
+    await flush();
+    expect(snapshot.finished).toBe(true); expect(snapshot.reviewReady).toBe(false);
+    expect(ws.sent.at(-1)!.toolResponse.functionResponses[0].response.closingMessage).toBe(closingMessage);
+    expect(audio.muteMic).toHaveBeenCalledWith(true);
+    ws.message({serverContent:{modelTurn:{parts:[{inlineData:{data:"AAA="}}]}}});
+    callbacks.playing(true);
+    ws.message({serverContent:{generationComplete:true}});
+    expect(snapshot.reviewReady).toBe(false);
+    callbacks.playing(false);
+    expect(snapshot.reviewReady).toBe(true); expect(ws.closed).toBe(true);
+  });
+  it("still opens analysis if the final audio never arrives", async () => {
+    const ws = await connect();
+    vi.mocked(api).mockResolvedValue({...interview, transcript:[{...interview.transcript[0],answer:"Done"}]});
+    ws.message({toolCall:{functionCalls:[{id:"final",name:"submit_answer",args:{questionId:"q1",answer:"Done"}}]}});
+    await flush();
+    expect(snapshot.reviewReady).toBe(false);
+    await vi.advanceTimersByTimeAsync(20001);
+    expect(snapshot.reviewReady).toBe(true); expect(audio.close).toHaveBeenCalledTimes(1);
   });
 });

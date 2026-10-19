@@ -46,9 +46,11 @@ type Props = {
   busy: string;
   action: (path: string, data?: unknown) => Promise<boolean>;
   onEnd: () => void;
+  onComplete: () => void;
+  autoStartVoice?: boolean;
 };
 
-export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
+export function InterviewExperience({ interview, busy, action, onEnd, onComplete, autoStartVoice = false }: Props) {
   const transcript: Data[] = interview.transcript || [];
   const current = transcript[transcript.length - 1];
   const practice = interview.mode === "PRACTICE";
@@ -91,6 +93,10 @@ export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [showAnswer, setShowAnswer] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
+  const voiceStarted = useRef(false);
+  const completionRequested = useRef(false);
+  const completionTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const complete = useRef(onComplete); complete.current = onComplete;
   function startLiveVoice() {
     setShowAnswer(true);
     if (live.snapshot.input.trim()) {
@@ -101,6 +107,17 @@ export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
     try { device = sessionStorage.getItem("skillnex-interview-mic") || ""; } catch {}
     void live.start(device);
   }
+  useEffect(() => {
+    if (!autoStartVoice || !liveMode || voiceStarted.current) return;
+    // The lobby click authorizes voice; defer once so StrictMode's rehearsal cleanup is harmless.
+    const timer = setTimeout(() => { voiceStarted.current = true; startLiveVoice(); }, 0);
+    return () => clearTimeout(timer);
+  }, [autoStartVoice, liveMode]);
+  useEffect(() => {
+    if (!live.snapshot.reviewReady || completionRequested.current) return;
+    completionRequested.current = true;
+    complete.current();
+  }, [live.snapshot.reviewReady]);
   const [cameraControls, setCameraControls] = useState<HTMLDivElement | null>(
     null,
   );
@@ -172,8 +189,8 @@ export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
   }, []);
 
   const say = useCallback(
-    (question: string, queue = false) => {
-      if (!question || !speechSupported) return;
+    (question: string, queue = false, onDone?: () => void) => {
+      if (!question || !speechSupported) { onDone?.(); return; }
       if (!queue) stopSpeech();
       const token = speechId.current;
       const utterance = new SpeechSynthesisUtterance(question);
@@ -218,6 +235,7 @@ export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
         if (valid()) {
           setSpeaking(false);
           setSpokenCaption("");
+          onDone?.();
         }
       };
       utterance.onerror = (event) => {
@@ -228,12 +246,14 @@ export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
             setVoiceError(
               "Voice could not start. Press Play question, or read the question below.",
             );
+          onDone?.();
         }
       };
       try {
         window.speechSynthesis.speak(utterance);
       } catch {
         setVoiceError("Voice is unavailable. You can read the question below.");
+        onDone?.();
       }
     },
     [speechSupported, stopSpeech, selectedVoice, interviewerGender],
@@ -243,6 +263,7 @@ export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
     mounted.current = true;
     return () => {
       mounted.current = false;
+      clearTimeout(completionTimer.current);
       speechId.current++;
       recognition.current?.dispose();
       recognition.current = null;
@@ -278,13 +299,7 @@ export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
     // Delay until after the effect commits so StrictMode cleanup cannot cancel the only reading.
     const timer = window.setTimeout(() => {
       heard.current = current.id;
-      const transition = transcript.length > 1
-        ? interview.progression?.turnKind === "FOLLOW_UP"
-          ? "Let’s explore that a little further. "
-          : "Your next question is: "
-        : "";
-      // Keep the acknowledgement audible even if the next question arrives quickly.
-      say(transition + current.question, true);
+      say(interview.spokenPrompt || current.question);
     }, 150);
     return () => window.clearTimeout(timer);
   }, [
@@ -292,6 +307,7 @@ export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
     current?.id,
     current?.answer,
     current?.question,
+    interview.spokenPrompt,
     transcript.length,
     interview.progression?.turnKind,
     voiceOn,
@@ -414,23 +430,23 @@ export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
           speechSeconds: Math.min(86400, metrics.current.speechSeconds),
           spokenWords: Math.min(15000, metrics.current.spokenWords),
         },
-        () => {
-          if (mounted.current && voiceEnabled.current && !last) {
-            const acknowledgements = [
-              "Thank you for sharing that.",
-              "Thanks for walking me through your answer.",
-              "Thank you. Let’s keep going.",
-            ];
-            say(acknowledgements[(transcript.length - 1) % acknowledgements.length]);
-          }
-        },
       );
       if (["advanced", "finished", "followup-failed"].includes(result)) {
         live.answerSaved(current.id);
         setDraft("");
         setCode("");
       }
-      if (result === "finished") onEnd();
+      if (result === "finished") {
+        const finish = () => {
+          if (!mounted.current || completionRequested.current) return;
+          completionRequested.current = true; clearTimeout(completionTimer.current);
+          complete.current();
+        };
+        if (voiceEnabled.current && speechSupported) {
+          completionTimer.current = setTimeout(finish, 15000);
+          say(interview.closingMessage || "Thank you for your effort. Your interview is complete. Let's open your analysis.", false, finish);
+        } else finish();
+      }
       if (result === "followup-failed")
         toast.info("Your answer is saved. Retry the next question when ready.");
     } finally {
@@ -557,6 +573,12 @@ export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
           </Button>
         </div>
       )}
+      {liveMode && live.snapshot.state === "ENDED" && !live.snapshot.finished && (
+        <div className="meeting-voice-error meeting-voice-ready" role="status">
+          <div><strong>Hear your interviewer first</strong><p>Start voice and allow your microphone. Your interviewer will ask the question aloud, then listen to your answer.</p></div>
+          <Button type="button" onClick={startLiveVoice}><Volume2 size={16}/>Start voice interview</Button>
+        </div>
+      )}
       <div className="interview-meeting-grid">
         <section className="interview-stage" aria-label="Virtual interviewer">
           <div className="interview-stage-top">
@@ -609,7 +631,9 @@ export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
                   ? "NEXT PRACTICE QUESTION"
                   : "CONTINUING YOUR CONVERSATION"}
             </span>
-            <h2>{(liveMode ? live.snapshot.output : spokenCaption) || current?.question || "Preparing your question…"}</h2>
+            {interview.acknowledgement && !current?.answer && <p className="interview-turn-thanks">{interview.acknowledgement}</p>}
+            <h2>{current?.question || "Preparing your question…"}</h2>
+            {(liveMode ? live.snapshot.output : spokenCaption) && <p className="interview-spoken-caption"><strong>Interviewer: </strong>{liveMode ? live.snapshot.output : spokenCaption}</p>}
           </div>
           <div className="interview-stage-controls" hidden={liveMode}>
             <Button
@@ -618,7 +642,7 @@ export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
               onClick={() => {
                 setVoiceOn(true);
                 heard.current = current?.id;
-                say(current?.question);
+                say(interview.spokenPrompt || current?.question);
               }}
             >
               <Volume2 size={16} />
@@ -708,7 +732,7 @@ export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
                         toast.info("Send your draft first, or clear it before switching to a live conversation.");
                         return;
                       }
-                      stopListening(); stopSpeech(); setLiveMode(true);
+                      stopListening(); stopSpeech(); setLiveMode(true); startLiveVoice();
                     }}><Mic size={16}/>Live voice interview</Button>}
                     <Button
                       type="button"

@@ -642,6 +642,9 @@
 .meeting-voice-error { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 16px; margin-bottom: 12px; border: 1px solid #9e6757; border-radius: 12px; background: #322622; color: #ffe4d9; flex-shrink: 0; }
 .meeting-voice-error > div { flex: 1 1 240px; min-width: 0; }
 .meeting-voice-error p { margin: 4px 0 0; line-height: 1.5; font-size: 13px; overflow-wrap: anywhere; }
+.meeting-voice-ready { border-color: #335b60; background: #122c2d; color: #d8f6f1; }
+.meeting-room .interview-turn-thanks { margin: 8px 0; color: #b4e7de; font-size: 14px; line-height: 1.5; }
+.meeting-room .interview-spoken-caption { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #ffffff20; color: #c2cdd8; font-size: 13px; line-height: 1.5; max-height: 72px; overflow: auto; overflow-wrap: anywhere; }
 .live-interview-controls label { display: grid; gap: 8px; }
 .live-interview-controls select { width: 100%; min-width: 0; }
 .live-mic-meter { height: 9px; background: #293b41; border-radius: 6px; overflow: hidden; }

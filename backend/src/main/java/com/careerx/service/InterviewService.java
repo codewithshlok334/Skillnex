@@ -52,6 +52,7 @@ public class InterviewService {
       out.put("progression", Map.of("phase", current.get("phase"), "turnKind", current.get("turn_kind"), "mainQuestion", ((Number)current.get("plan_index")).intValue() + 1, "mainQuestionCount", plan.size(), "stages", List.of("Introduction", "Easy", "Medium", "Hard", "Closing")));
       out.put("canFinishAfterAnswer", "Closing".equals(current.get("phase")));
     }
+    out.putAll(InterviewSpeech.presentation(out));
     return out;
   }
 

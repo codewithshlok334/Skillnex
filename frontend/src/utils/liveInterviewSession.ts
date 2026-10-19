@@ -5,9 +5,9 @@ import { LiveInterviewAudio, pcmBase64 } from "./liveInterviewAudio";
 export type LiveState = "INITIALIZING" | "CONNECTING" | "LISTENING" | "THINKING" | "AI_SPEAKING" | "INTERRUPTED" | "RECONNECTING" | "ERROR" | "ENDED";
 export type LiveSnapshot = {
   state: LiveState; detail: string; level: number; mouth: number; input: string;
-  output: string; muted: boolean; pending: boolean; finished: boolean;
+  output: string; muted: boolean; pending: boolean; finished: boolean; reviewReady: boolean;
 };
-export const idleLive: LiveSnapshot = {state:"ENDED", detail:"Start voice to hear your first question, then speak naturally.", level:0, mouth:0, input:"", output:"", muted:false, pending:false, finished:false};
+export const idleLive: LiveSnapshot = {state:"ENDED", detail:"Start voice to hear your first question, then speak naturally.", level:0, mouth:0, input:"", output:"", muted:false, pending:false, finished:false, reviewReady:false};
 const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained";
 
 // Never echo provider text: close reasons can contain credentials or request data.
@@ -53,6 +53,8 @@ export class LiveInterviewSession {
   private calls = new Map<string, Promise<Data>>();
   private cancelled = new Set<string>();
   private turnBusy = false;
+  private closingTurn = false;
+  private closingAudio = false;
   private tokenAbort = new AbortController();
   private closing: Promise<void> = Promise.resolve();
   constructor(interview: Data, private changed: (state: LiveSnapshot) => void, private saved: (interview: Data) => void,
@@ -79,6 +81,7 @@ export class LiveInterviewSession {
       mouth: mouth => { if (!this.stopped) this.update({mouth}); },
       playing: playing => {
         this.playing = playing;
+        if (!this.stopped && this.closingTurn && this.closingAudio && this.turnDone && !playing) { this.finish(); return; }
         if (!this.stopped && this.ready && !this.snapshot.finished)
           this.update({state:playing ? "AI_SPEAKING" : this.turnDone && !this.turnBusy ? "LISTENING" : "THINKING"});
       },
@@ -201,7 +204,7 @@ export class LiveInterviewSession {
       this.later(() => { if (this.ready) this.attempts = 0; }, 30000);
       this.update({state:"LISTENING", detail:"Connected. Speak naturally; you can interrupt the interviewer."});
       if (!resumed) {
-        this.send({clientContent:{turns:[{role:"user", parts:[{text:"Begin the interview by reading the current unanswered question in INTERVIEW_DATA. This is a control instruction, not a candidate answer."}]}], turnComplete:true}});
+        this.send({clientContent:{turns:[{role:"user", parts:[{text:"Speak first now. Read spokenPrompt from INTERVIEW_DATA aloud in full, then wait for my answer. This is a control instruction, not a candidate answer."}]}], turnComplete:true}});
         this.armResponseTimeout();
       }
     }
@@ -227,6 +230,7 @@ export class LiveInterviewSession {
     }
     for (const part of content.modelTurn?.parts || []) {
       if (part.inlineData?.data && !this.discardAudio) {
+        if (this.closingTurn) this.closingAudio = true;
         this.turnDone = false; this.clear(this.responseTimer);
         try { this.audio?.play(part.inlineData.data, part.inlineData.mimeType); }
         catch (error) { this.fail(error instanceof Error ? error.message : "Audio playback failed."); return; }
@@ -235,6 +239,7 @@ export class LiveInterviewSession {
     if (content.generationComplete || content.turnComplete) {
       this.turnDone = true; this.discardAudio = false; this.output = "";
       this.clear(this.responseTimer);
+      if (this.closingTurn && this.closingAudio && !this.playing) { this.finish(); return; }
       if (!this.playing && !this.snapshot.finished && !this.turnBusy) this.update({state:"LISTENING", detail:"Your turn. Speak naturally."});
     }
   }
@@ -264,10 +269,18 @@ export class LiveInterviewSession {
       this.input = ""; this.speechSeconds = 0; this.turnBusy = false;
       if (this.stopped) return;
       this.update({pending:false, input:"", finished});
+      if (finished) { this.closingTurn = true; this.closingAudio = false; this.turnDone = false; }
       if (this.socket === ws && !this.cancelled.has(call.id)) this.send({toolResponse:{functionResponses:[{id:call.id, name:call.name, response:{
-        saved:true, finished, questionId:current.id, question:finished ? "Thank the candidate. They can now select End interview for their report." : current.question,
+        saved:true, finished, questionId:current.id, question:finished ? "" : current.question,
+        spokenPrompt:interview.spokenPrompt, acknowledgement:interview.acknowledgement,
+        closingMessage:interview.closingMessage,
       }}]}});
-      if (finished) { this.audio?.muteMic(true); this.update({muted:true, detail:"Answers saved. Select End interview for your review."}); }
+      if (finished) {
+        this.clear(this.responseTimer); this.audio?.muteMic(true);
+        this.update({muted:true, detail:"Interview complete. Your analysis will open after the closing message."});
+        // A dropped closing-audio response must never leave a completed session stuck.
+        this.later(() => this.finish(), 20000);
+      }
       else this.armResponseTimeout();
     } catch (error) {
       this.turnBusy = false;
@@ -276,6 +289,7 @@ export class LiveInterviewSession {
   }
   private reconnect() {
     if (this.stopped) return;
+    if (this.closingTurn) { this.finish(); return; }
     this.ready = false; this.clear(this.setupTimer); this.clear(this.responseTimer); this.audio?.stopPlayback(); this.detachSocket();
     this.output = "";
     if (++this.attempts > 3) { this.fail("Voice connection was lost. Your saved answers are safe; retry or continue with text."); return; }
@@ -292,7 +306,7 @@ export class LiveInterviewSession {
     if (muted && this.ready) this.send({realtimeInput:{audioStreamEnd:true}});
   }
   muteOutput(muted: boolean) { this.audio?.muteOutput(muted); }
-  private finish() { this.stop(); this.update({finished:true, detail:"Answers saved. Select End interview for your review."}); }
+  private finish() { this.stop(); this.update({finished:true, reviewReady:true, detail:"Answers saved. Preparing your interview analysis…"}); }
   private fail(detail: string) {
     if (this.stopped) return;
     this.stop(); this.update({state:"ERROR", detail, level:0, mouth:0, pending:false});

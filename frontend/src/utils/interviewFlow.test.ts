@@ -1,7 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
-import { saveInterviewTurn } from './interviewFlow';
+import { saveInterviewTurn, finishInterview } from './interviewFlow';
 
 describe('spoken interview turn persistence', () => {
+  it('automatically requests analysis only after the session has ended', async () => {
+    const action = vi.fn().mockResolvedValue(true);
+    expect(await finishInterview(action)).toBe('review-ready');
+    expect(action.mock.calls).toEqual([['end'], ['report']]);
+  });
+  it('preserves completion on report failure and never reports an active session', async () => {
+    const endFailed = vi.fn().mockResolvedValue(false);
+    expect(await finishInterview(endFailed)).toBe('end-failed');
+    expect(endFailed).toHaveBeenCalledTimes(1);
+    expect(await finishInterview(vi.fn().mockResolvedValueOnce(true).mockResolvedValueOnce(false))).toBe('review-failed');
+  });
   it('acknowledges only a saved answer and before requesting the next question', async () => {
     const events: string[] = [];
     const action = vi.fn(async (path: string) => { events.push(path); return true; });
