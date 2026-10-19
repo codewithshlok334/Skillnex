@@ -1061,9 +1061,6 @@
   .landing-footer p {
     display: none;
   }
-  .comparison-grid {
-    grid-template-columns: 1fr;
-  }
   .answers-title > span {
     display: none;
   }

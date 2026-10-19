@@ -1,12 +1,7 @@
 # SkillNex — full source update
 
-This is the complete frontend and backend as of 4 October 2026, including interview microphone/layout recovery, SkillNex branding, colorful tool cards, LinkedIn review, authentication/data recovery fixes and CodeLab with 50 questions in Java, C++ and Python. For a fresh computer, start with [NEW-SYSTEM-SETUP.md](NEW-SYSTEM-SETUP.md).
+This is the complete frontend and backend as of 4 October 2026, including interview microphone/layout recovery, SkillNex branding, colorful tool cards, authentication/data recovery fixes and CodeLab with 50 questions in Java, C++ and Python. For a fresh computer, start with [NEW-SYSTEM-SETUP.md](NEW-SYSTEM-SETUP.md).
 
-### LinkedIn review update
-
-After signing in, choose **LinkedIn review** in the sidebar, or open `/app/linkedin`. Paste your profile URL and target role, then import a PDF or paste your professional profile text. Review the preview, approve sending it to your configured AI provider, and choose **Analyse profile**. Saving the report is optional; saved reports have a delete option.
-
-PDF/text analysis works with your existing Gemini configuration. **Connect with LinkedIn** separately requires your LinkedIn developer application's Client ID, Client Secret, approved OpenID Connect product and exact callback URL. Standard LinkedIn sign-in imports basic profile information only; it does not enable full analysis from a URL alone. See `docs/LINKEDIN-REVIEW.md`. Keep credentials in the private backend configuration, never frontend code.
 
 ### Live interview update
 
@@ -23,7 +18,7 @@ Use the updated frontend **and** backend together. Keep your private provider co
 3. Extract this ZIP into a **new folder**. Open `SkillNex/SkillNex.code-workspace` in VS Code. The Explorer will show **SkillNex**.
 4. With both backends stopped, copy your existing `backend/data` folder into the extracted project's `backend/data` to keep your local H2 accounts, chats and other database records. Copy the entire folder, not just selected database files. Keep your old backup.
 5. Copy your private `backend/config/ai.properties` into the same location in the extracted project to retain your Gemini connection. If you use environment variables or PostgreSQL instead, keep those existing settings and point the new backend at the same database. Do not share your key file.
-6. Keep all included V1–V9 database migrations; the backend applies only migrations that are missing. V8 adds LinkedIn connections and optional reports; V9 adds CodeLab. Do not edit old migrations or reset the database.
+6. Keep all included V1–V9 database migrations; the backend applies only migrations that are missing. Historical migrations must remain intact; V9 adds CodeLab. Do not edit old migrations or reset the database.
 7. Start the two servers below. Use the same login account as before. Opening a fresh empty database or a different demo account will show different data.
 
 The archive uses a `SkillNex` root folder; older local copies may still be named `careerx`. Internal database/session identifiers remain compatible. Set up CodeLab again on a new machine with `START-CODELAB.cmd`; do not copy machine-specific runner configuration.
@@ -68,7 +63,7 @@ Open the **Local** URL printed by Vite. It normally uses `http://127.0.0.1:5173`
 5. Speak naturally, check the live transcript and next spoken question, then interrupt the interviewer. Test Continue with Text and Retry as well.
 6. Switch full view, check the transcript, and complete an interview to review its report.
 
-On 4 October 2026, the frontend build, 68 frontend tests and 62 backend tests passed. Browser checks covered login persistence, interview answers/next question/report and CodeLab Run/Submit; Python, Java and C++ execution were checked. Synthetic audio transcription passed. Physical microphone/camera permissions, sound quality and a full live conversation still need a check on the destination computer. LinkedIn authorization needs the recipient's own app credentials and approval; sign-in does not provide a full profile from a URL alone.
+On 4 October 2026, the frontend build, 68 frontend tests and 62 backend tests passed. Browser checks covered login persistence, interview answers/next question/report and CodeLab Run/Submit; Python, Java and C++ execution were checked. Synthetic audio transcription passed. Physical microphone/camera permissions, sound quality and a full live conversation still need a check on the destination computer.
 
 ## Archive contents
 

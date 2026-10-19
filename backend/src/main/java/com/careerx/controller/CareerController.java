@@ -3,6 +3,11 @@ package com.careerx.controller;
 import com.careerx.ai.CareerAIService;
 import com.careerx.dto.Requests.*;
 import com.careerx.repository.Store;
+import com.careerx.service.RoadmapPdfService;
+import java.io.IOException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import java.util.*;
@@ -15,10 +20,12 @@ public class CareerController {
 
   private final Store db;
   private final CareerAIService ai;
+  private final RoadmapPdfService pdf;
 
-  public CareerController(Store db, CareerAIService ai) {
+  public CareerController(Store db, CareerAIService ai, RoadmapPdfService pdf) {
     this.db = db;
     this.ai = ai;
+    this.pdf = pdf;
   }
 
   public Object context(String uid, String goal) {
@@ -62,6 +69,20 @@ public class CareerController {
       db.list("SELECT * FROM roadmap_items WHERE roadmap_id=? ORDER BY position", r.get("id"))
     );
     return r;
+  }
+
+  @GetMapping("/roadmap/{id}/export")
+  public ResponseEntity<byte[]> export(@PathVariable String id, Principal p) throws IOException {
+    var roadmap = db.one(
+      "SELECT r.id,r.summary,g.title FROM career_roadmaps r JOIN career_goals g ON g.id=r.goal_id WHERE r.id=? AND r.user_id=?",
+      id, p.getName()
+    );
+    var items = db.list("SELECT title,learn,practice,build,interview,progress FROM roadmap_items WHERE roadmap_id=? ORDER BY position", id);
+    return ResponseEntity.ok()
+      .contentType(MediaType.APPLICATION_PDF)
+      .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"SkillNex-career-roadmap.pdf\"")
+      .header(HttpHeaders.CACHE_CONTROL, "private, no-store")
+      .body(pdf.export(roadmap, items));
   }
 
   @PostMapping("/roadmap")

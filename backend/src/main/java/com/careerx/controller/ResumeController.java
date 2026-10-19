@@ -100,42 +100,6 @@ public class ResumeController {
     return ai.improve(p.getName(), in.text());
   }
 
-  @PostMapping("/api/jobs/match")
-  public Object match(@Valid @RequestBody Match in, Principal p) {
-    var r = db.owned("resumes", in.resumeId(), p.getName());
-    var result = ai.match(p.getName(), (String) r.get("content"), in.jobDescription());
-    String job = db.id();
-    db.exec(
-      "INSERT INTO job_descriptions(id,user_id,content) VALUES(?,?,?)",
-      job,
-      p.getName(),
-      in.jobDescription()
-    );
-    db.exec(
-      "INSERT INTO job_matches(id,job_id,resume_id,result_json) VALUES(?,?,?,?)",
-      db.id(),
-      job,
-      in.resumeId(),
-      db.text(result)
-    );
-    return result;
-  }
-
-  @PostMapping("/api/resumes/tailor")
-  public Object tailor(@Valid @RequestBody Match in, Principal p) {
-    var r = db.owned("resumes", in.resumeId(), p.getName());
-    var result = ai.tailor(p.getName(), (String) r.get("content"), in.jobDescription());
-    db.exec(
-      "INSERT INTO resume_versions(id,resume_id,original_text,tailored_text,changes_json) VALUES(?,?,?,?,?)",
-      db.id(),
-      in.resumeId(),
-      r.get("content"),
-      result.path("content").asText(),
-      db.text(result.path("changes"))
-    );
-    return Map.of("original", r.get("content"), "tailored", result);
-  }
-
   @GetMapping("/api/resumes/{id}/export")
   public ResponseEntity<byte[]> export(
     @PathVariable String id,

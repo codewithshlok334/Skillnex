@@ -254,7 +254,6 @@ public class HttpAIService implements AIService {
   private void validate(String task, JsonNode n) {
     if (!n.isObject()) throw new IllegalArgumentException();
     switch (task) {
-      case "LinkedInAnalysisPrompt", "LinkedInFromResumePrompt" -> com.careerx.service.LinkedInAnalysisService.validate(n);
       case "ResumeAnalysisPrompt" -> {
         score(n, "score");
         array(n, "breakdown");
@@ -272,23 +271,6 @@ public class HttpAIService implements AIService {
           ) throw new IllegalArgumentException();
         }
         text(n, "summary");
-      }
-      case "JobMatchPrompt" -> {
-        score(n, "score");
-        strings(n, "matchingSkills");
-        strings(n, "missingSkills");
-        strings(n, "keywords");
-        strings(n, "projects");
-        strings(n, "topics");
-      }
-      case "ResumeTailoringPrompt" -> {
-        text(n, "content");
-        array(n, "changes");
-        for (var c : n.path("changes")) {
-          text(c, "original");
-          text(c, "replacement");
-          text(c, "reason");
-        }
       }
       case "ResumeImprovementPrompt" -> text(n, "suggestion");
       case "InterviewPrompt" -> text(n, "question");

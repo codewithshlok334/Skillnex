@@ -20,8 +20,7 @@ Flyway migrations are the source of truth:
 | Aggregate    | Tables and relationships                                                                                                   |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------- |
 | Identity     | `app_users` → one `profiles`; role constrained to STUDENT/FACULTY/ADMIN; single-use hashed `password_resets`               |
-| Resume       | user → many `resumes` → many `resume_analyses` / `resume_versions`; six `resume_templates`                                 |
-| Job matching | user → `job_descriptions`; `job_matches` links a description to an owned resume                                            |
+| Resume       | user → many `resumes` → many `resume_analyses`; six `resume_templates`                                 |
 | Interview    | user → `interviews` → ordered `interview_questions` → at most one `interview_answers`; one `interview_reports` per session |
 | Community    | user → `questions` → `answers` and `comments`; category FK; verifier FK to user                                            |
 | Reputation   | unique `votes(user_id, answer_id)`; `badges` / unique `user_badges`; cached reputation in profile                          |
@@ -35,9 +34,9 @@ Indexes cover ownership, chronological lists, categories, votes, reports, remind
 
 `AIService` defines structured generation and embeddings. `HttpAIService` contains separate OpenAI-compatible and Anthropic protocol paths. `AIExecutor` applies per-user limits and records usage. Domain services are `ResumeAIService`, `InterviewAIService`, `CommunityAIService`, and `CareerAIService`.
 
-Prompts are backend resources, not frontend strings. Untrusted resume/job/question text is passed as data. Every generation prompt instructs the provider not to invent qualifications, metrics, or employment history. Structured JSON is parsed and validated for required fields, types, lengths, array bounds, and 0–100 score bounds before it is returned for persistence.
+Prompts are backend resources, not frontend strings. Untrusted resume/question text is passed as data. Every generation prompt instructs the provider not to invent qualifications, metrics, or employment history. Structured JSON is parsed and validated for required fields, types, lengths, array bounds, and 0–100 score bounds before it is returned for persistence.
 
-All generated wording is a reviewable suggestion. Users explicitly apply builder improvements and save tailored versions. AI explanations are distinguished from human answers. Faculty verification requires a server-side FACULTY or ADMIN role and cannot be self-awarded.
+All generated wording is a reviewable suggestion. Users explicitly apply builder improvements. AI explanations are distinguished from human answers. Faculty verification requires a server-side FACULTY or ADMIN role and cannot be self-awarded.
 
 No configured AI key/model means a clean HTTP 503, not a simulated result. Seeded sample results exist only in explicit demo mode.
 

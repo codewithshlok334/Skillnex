@@ -12,7 +12,3 @@ app.ai.embedding-model=
 # The regular app.ai.model continues to handle text, follow-ups and reports.
 app.ai.live-key=
 app.ai.live-model=gemini-3.8-live
-# Optional LinkedIn basic-profile import. Fill only in your private ai.properties.
-app.linkedin.client-id=
-app.linkedin.client-secret=
-app.linkedin.redirect-uri=

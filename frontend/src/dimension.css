@@ -713,9 +713,6 @@
 .dimension-bento-builder {
   background: #232323;
 }
-.dimension-bento-match {
-  background: #242424;
-}
 .dimension-label {
   font-size: 7px;
   letter-spacing: 1.5px;
@@ -753,35 +750,6 @@
 }
 .dimension-bento-builder:hover .dimension-mini-docs i:nth-child(3) {
   transform: translateX(35%) rotate(27deg) rotateY(-20deg);
-}
-.dimension-match-art {
-  height: 140px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  perspective: 500px;
-  color: #dadada;
-}
-.dimension-match-art span {
-  position: absolute;
-  width: 95px;
-  height: 95px;
-  border: 14px solid #acacac;
-  border-radius: 50%;
-  transform: translateX(-22px) rotateY(45deg) rotateX(25deg);
-  box-shadow:
-    inset 2px 4px 3px #d8d8d888,
-    4px 7px 10px #00000044;
-}
-.dimension-match-art span:nth-child(2) {
-  border-color: #e9e9e9;
-  transform: translateX(24px) rotateY(45deg) rotateX(-25deg);
-}
-.dimension-match-art > svg {
-  position: absolute;
-  right: 5%;
-  top: 16%;
 }
 .dimension-path-section {
   padding-bottom: 40px;
@@ -1501,12 +1469,10 @@
     max-width: 260px;
     font-size: 12px;
   }
-  .dimension-mini-docs,
-  .dimension-match-art {
+  .dimension-mini-docs {
     height: 130px;
   }
-  .dimension-bento-builder,
-  .dimension-bento-match {
+  .dimension-bento-builder {
     padding-bottom: 30px !important;
   }
   .dimension-steps {

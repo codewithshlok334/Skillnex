@@ -14,7 +14,6 @@ import {
   Mic,
   PenLine,
   Route,
-  ScanLine,
   Sparkles,
   X,
 } from 'lucide-react';
@@ -346,24 +345,6 @@ export function DimensionLanding() {
                 PDF and DOCX exports.
               </p>
               <span className="dimension-label">FREE RESUME BUILDER</span>
-            </Link>
-            <Link to="/app/jobs" className="dimension-bento-match">
-              <span className="dimension-bento-top">
-                <ScanLine size={23} />
-                <ArrowUpRight size={21} />
-              </span>
-              <div className="dimension-match-art" aria-hidden="true">
-                <span />
-                <span />
-                <Sparkles size={25} />
-              </div>
-              <h3>
-                Find where
-                <br />
-                you fit.
-              </h3>
-              <p>Connect your experience to the opportunities that interest you.</p>
-              <span className="dimension-label">PERSONAL JOB MATCHING</span>
             </Link>
           </div>
         </section>

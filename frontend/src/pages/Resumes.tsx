@@ -181,10 +181,6 @@ export function Resumes() {
               We improve your wording using the facts you provide. Always review AI suggestions
               before adding them to your resume.
             </p>
-            <Link to="/app/jobs" className="text-link">
-              Have a job in mind? Check your match
-              <ArrowRight size={15} />
-            </Link>
           </Card>
         </div>
         <div className="stack">

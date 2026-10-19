@@ -147,8 +147,7 @@ input[type='range'] {
     .upload-zone strong,
     .upload-zone em,
     .analysis-breakdown strong,
-    .file-list button,
-    .skill-gap
+    .file-list button
   ) {
   color: var(--accent);
 }

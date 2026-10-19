@@ -1,5 +1,9 @@
 # Verification record
 
+## Career roadmap and retired tools (October 20)
+
+TypeScript/Vite production build passed. All 35 focused backend checks passed: 21 platform integration, 12 AI provider contract and 2 roadmap PDF tests. Coverage includes private PDF exports, saved progress, multi-page long content, and retired LinkedIn Review / Job Match endpoints returning 404. Roadmap map/list switching, completion/reopening, generation, empty/error states, mobile scrolling and light mode were checked in the browser. All four pages of the sample PDF were rendered and visually reviewed.
+
 ## Automated checks
 
 AI assistant addition (September 25): all 16 backend tests passed on H2 with migrations V1-V4. New coverage verifies private chat ownership, optional profile context, conversation continuity, idempotent retries, provider failures without partial message pairs, missing-provider setup errors, and assistant response validation through a local HTTP provider fixture. The updated TypeScript/Vite production build passed. Live provider replies still require user-supplied credentials and have not been verified against a paid external service.
@@ -11,7 +15,7 @@ Interview fix (September 25): 13 backend tests passed on H2, including a complet
 - Flyway migrations V1 and V2 were applied successfully to PostgreSQL and H2.
 - Provider contract tests use a local HTTP fixture. Platform tests use controlled AI responses; these are test-only fixtures, not production fallback results.
 
-Integration coverage includes session authorization, origin checks, resource ownership, privacy, PDF/DOCX extraction and export, resume analysis and job matching, provider failure handling, adaptive interviews and retryable answers, report idempotency, voting and faculty permissions, roadmap ownership, admin moderation, account bans, password reset invalidation, and semantic search.
+Integration coverage includes session authorization, origin checks, resource ownership, privacy, PDF/DOCX extraction and export, resume analysis, provider failure handling, adaptive interviews and retryable answers, report idempotency, voting and faculty permissions, roadmap ownership, admin moderation, account bans, password reset invalidation, and semantic search.
 
 ## Browser checks
 

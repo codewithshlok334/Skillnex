@@ -47,7 +47,7 @@ curl -b cookies.txt http://localhost:8080/api/dashboard
 
 Google entry point: `/oauth2/authorization/google`. Callback: `/login/oauth2/code/google`. These are outside the `/api` prefix.
 
-## Resumes and jobs
+## Resumes
 
 | Method | Path                            | Request / result                                                                                       |
 | ------ | ------------------------------- | ------------------------------------------------------------------------------------------------------ |
@@ -59,8 +59,6 @@ Google entry point: `/oauth2/authorization/google`. Callback: `/login/oauth2/cod
 | POST   | /resumes/improve                | text → suggestion; user reviews before applying                                                        |
 | GET    | /resumes/{id}/export?format=pdf | Binary PDF; `format=docx` for Word                                                                     |
 | GET    | /resume-templates               | Six available template IDs/names                                                                       |
-| POST   | /jobs/match                     | resumeId, jobDescription → score, matchingSkills, missingSkills, keywords, projects, topics            |
-| POST   | /resumes/tailor                 | resumeId, jobDescription → original and tailored {content, changes}; saved audit version, no overwrite |
 
 Analysis output:
 
@@ -133,6 +131,7 @@ The browser requests an initial explanation after successfully posting a questio
 | GET    | /career/roadmap            | Latest active roadmap and items, or empty items array                             |
 | POST   | /career/roadmap            | text: career goal; creates a new roadmap using actual account data                |
 | PATCH  | /career/roadmap/items/{id} | progress: integer 0–100; ownership enforced                                       |
+| GET    | /career/roadmap/{id}/export | Download a paginated PDF of an owned roadmap, including saved progress; private, no-store |
 | POST   | /career/recommendations    | title and recommendation using resume, skills, interviews, and community activity |
 
 Roadmap items include learn, practice, build, and interview activities. Completion is user-reported, never inferred as a credential.

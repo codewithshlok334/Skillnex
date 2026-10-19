@@ -401,7 +401,21 @@ class PlatformIntegrationTest {
   }
 
   @Test
-  void resumeAiMatchTailorAndOutage() throws Exception {
+  void retiredReviewAndMatchingEndpointsAreUnavailable() throws Exception {
+    var a = account("STUDENT");
+    for (String path : List.of("/api/linkedin/status", "/api/linkedin/reports")) {
+      mvc.perform(get(path).cookie(a.cookie)).andExpect(status().isNotFound());
+    }
+    for (String path : List.of("/api/linkedin/analyze", "/api/linkedin/connect", "/api/jobs/match")) {
+      mvc.perform(post(path).cookie(a.cookie).header("Origin", ORIGIN)
+        .contentType("application/json").content("{}"))
+        .andExpect(status().isNotFound());
+    }
+    verify(ai, never()).generate(anyString(), anyString());
+  }
+
+  @Test
+  void resumeAiAnalysisAndOutage() throws Exception {
     Account a = account("STUDENT");
     String rid = resume(a);
     when(ai.generate(eq("ResumeAnalysisPrompt"), anyString())).thenReturn(
@@ -411,30 +425,6 @@ class PlatformIntegrationTest {
     mvc
       .perform(get("/api/resumes/" + rid).cookie(a.cookie))
       .andExpect(jsonPath("$.analysis.score").value(78));
-    when(ai.generate(eq("JobMatchPrompt"), anyString())).thenReturn(
-      json.readTree(
-        "{\"score\":70,\"matchingSkills\":[\"Java\"],\"missingSkills\":[\"Docker\"],\"keywords\":[],\"projects\":[],\"topics\":[]}"
-      )
-    );
-    assertEquals(
-      70,
-      body(
-        send(
-          a,
-          "/api/jobs/match",
-          Map.of("resumeId", rid, "jobDescription", "Java developer with Docker experience")
-        )
-      )
-        .path("score")
-        .asInt()
-    );
-    when(ai.generate(eq("ResumeTailoringPrompt"), anyString())).thenReturn(
-      json.readTree(
-        "{\"content\":\"Test Student: Java and SQL. Built a student portal.\",\"changes\":[]}"
-      )
-    );
-    send(a, "/api/resumes/tailor", Map.of("resumeId", rid, "jobDescription", "Java developer"));
-    assertEquals(1, db.count("SELECT COUNT(*) FROM resume_versions WHERE resume_id=?", rid));
     when(ai.generate(eq("ResumeAnalysisPrompt"), anyString())).thenThrow(
       new org.springframework.web.server.ResponseStatusException(
         org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,
@@ -863,6 +853,22 @@ class PlatformIntegrationTest {
           .content("{\"progress\":100}")
       )
       .andExpect(status().isOk());
+    String exportPath = "/api/career/roadmap/" + r.path("id").asText() + "/export";
+    mvc.perform(get(exportPath)).andExpect(status().isUnauthorized());
+    mvc.perform(get(exportPath).cookie(b.cookie)).andExpect(status().isNotFound());
+    var pdf = mvc.perform(get(exportPath).cookie(a.cookie))
+      .andExpect(status().isOk())
+      .andExpect(content().contentType("application/pdf"))
+      .andExpect(header().string("Cache-Control", "private, no-store"))
+      .andExpect(header().string("Content-Disposition", "attachment; filename=\"SkillNex-career-roadmap.pdf\""))
+      .andReturn().getResponse().getContentAsByteArray();
+    try (var document = org.apache.pdfbox.Loader.loadPDF(pdf)) {
+      String text = new org.apache.pdfbox.text.PDFTextStripper().getText(document);
+      assertTrue(text.contains("Java Developer"));
+      assertTrue(text.contains("100% complete"));
+      assertTrue(text.contains("Explain REST"));
+      assertEquals(2, document.getNumberOfPages());
+    }
     String qid = body(
       send(
         a,

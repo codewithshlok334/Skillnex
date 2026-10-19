@@ -50,11 +50,6 @@ public final class Requests {
     JsonNode document
   ) {}
 
-  public record Match(
-    @NotBlank String resumeId,
-    @NotBlank @Size(max = 20000) String jobDescription
-  ) {}
-
   public record Interview(
     @NotBlank @Size(max = 100) String role,
     @Pattern(regexp = "HR|Technical|Behavioral|Coding|Mixed") @NotNull String kind,

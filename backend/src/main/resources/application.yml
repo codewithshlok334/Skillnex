@@ -45,10 +45,6 @@ app:
     cpp-version: ${CODELAB_CPP_VERSION:10.2.0}
     python-version: ${CODELAB_PYTHON_VERSION:3.10.0}
   mail-from: ${MAIL_FROM:noreply@careerx.example}
-  linkedin:
-    client-id: ${LINKEDIN_CLIENT_ID:}
-    client-secret: ${LINKEDIN_CLIENT_SECRET:}
-    redirect-uri: ${LINKEDIN_REDIRECT_URI:}
   ai:
     provider: ${AI_PROVIDER:compatible}
     base-url: ${AI_BASE_URL:https://api.openai.com/v1}

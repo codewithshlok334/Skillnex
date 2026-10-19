@@ -11,14 +11,12 @@ import { Auth } from './pages/Auth';
 import { Dashboard } from './pages/Dashboard';
 import { Resumes } from './pages/Resumes';
 import { Builder } from './pages/Builder';
-import { Jobs } from './pages/Jobs';
 import { Interviews, InterviewRoom } from './pages/Interviews';
 import { Community, QuestionDetail } from './pages/Community';
 import { Roadmap } from './pages/Roadmap';
 import { Profile } from './pages/Profile';
 import { Admin } from './pages/Admin';
 import { Assistant } from './pages/Assistant';
-import { LinkedIn } from './pages/LinkedIn';
 import { applyTheme, readTheme } from './utils/graphiteTheme';
 import './styles.css';
 const CodeLab = lazy(() => import('./pages/CodeLab').then(module => ({ default: module.CodeLab })));
@@ -62,11 +60,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <Route path="/app" element={<AppLayout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="resumes" element={<Resumes />} />
-                <Route path="linkedin" element={<LinkedIn />} />
                 <Route path="codelab" element={<Suspense fallback={<div role="status">Opening CodeLab…</div>}><CodeLab /></Suspense>} />
                 <Route path="codelab/:id" element={<Suspense fallback={<div role="status">Opening your coding workspace…</div>}><CodeLabRoom /></Suspense>} />
                 <Route path="builder" element={<Builder />} />
-                <Route path="jobs" element={<Jobs />} />
                 <Route path="interviews" element={<Interviews />} />
                 <Route path="interviews/:id" element={<InterviewRoom />} />
                 <Route path="community" element={<Community />} />

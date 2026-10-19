@@ -10,6 +10,8 @@
 
 **AI assistant:** `/app/assistant` provides private saved conversations, follow-up context, Hindi/Hinglish support, and opt-in career profile context. Live replies require a configured AI provider. Copy `backend/config/ai.properties.example` to `backend/config/ai.properties`, fill in the provider details, and restart the backend. Keep the key file private.
 
+**Career roadmap:** `/app/roadmap` provides a connected milestone map, a compact list for mobile, actionable learning steps and saved progress. Use **Download PDF** to take the complete plan with you. Exports are private to the roadmap owner.
+
 ### Craft Your Resume. Crack Your Interview
 
 A full-stack career and campus platform with a React / TypeScript frontend, a Spring Boot API, PostgreSQL migrations, real document processing, provider-independent AI services, and a populated local demo.
@@ -86,7 +88,7 @@ Spring Boot does not automatically read the root `.env` file outside Compose. Ex
 - Email/password signup, login, logout, expiring signed JWT cookies, single-use reset tokens, SMTP reset delivery, and configurable Google OIDC.
 - Student/faculty/admin access controls; ownership checks for private resumes, interviews, and roadmaps.
 - PDF and DOCX parsing with file and page limits; extracted-text review.
-- Structured AI analysis, grounded wording improvements, job comparison, and reviewable resume tailoring.
+- Structured AI analysis and grounded wording improvements.
 - Free resume builder with live preview, six styles, section reordering by drag or accessible move buttons, local draft recovery, saved versions, PDF and DOCX export.
 - Adaptive interview context, saved text answers, browser voice recognition/read-aloud where supported, timer, completion, and retryable report generation.
 - Scheduling, rescheduling, cancellation, dashboard reminders, and downloadable calendar events with a 15-minute alarm.
@@ -125,7 +127,7 @@ The Anthropic adapter uses the Messages API. Its embedding capability is disable
 
 AI requests use a 10-second connection timeout, a 45-second response timeout, and one bounded retry for transient failures. Structured outputs are validated before persistence. A database-backed rate limiter allows 15 generation requests per account per hour. The API returns HTTP 503 with **“AI service is temporarily unavailable. Please try again.”** when no provider is configured or a provider fails.
 
-Prompt instructions prohibit fabricated qualifications or numerical achievements. They do not mathematically guarantee factual output. The UI requires the user to review wording and tailored versions before applying or saving them. ATS and job-match scores are estimates, never selection guarantees.
+Prompt instructions prohibit fabricated qualifications or numerical achievements. They do not mathematically guarantee factual output. The UI requires the user to review wording before applying or saving them. ATS scores are estimates, never selection guarantees.
 
 Embedding search indexes questions when an AI explanation is generated. Existing questions can be indexed by refreshing their explanation. Search ranks up to the latest 2,000 indexed questions with matching model IDs. See the architecture document for this scale limit and how to upgrade to pgvector.
 

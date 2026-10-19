@@ -62,12 +62,6 @@ Bina AI key ke guided interview practice aur baaki non-AI workflows chalenge. AI
 
 ## 5. Code kahan hai?
 
-### LinkedIn review (new)
-
-Login ke baad sidebar mein **LinkedIn review** kholein. Profile URL, target role aur PDF/text preview provide karein, AI consent select karein, phir **Analyse profile** press karein. Existing Gemini configuration is analysis ke liye sufficient hai. Report save karna optional hai.
-
-**Connect with LinkedIn** ke liye alag LinkedIn developer app credentials aur approval chahiye. Isse basic profile connect hoti hai; full profile URL-only analysis unlock nahi hota. Setup ke liye `docs/LINKEDIN-REVIEW.md` padhein. Frontend page `frontend/src/pages/LinkedIn.tsx`, backend endpoints `backend/src/main/java/com/careerx/controller/LinkedInController.java`, aur new database migration V8 included hain.
-
 Purana data aur Gemini configuration transfer karne ke liye pehle `UPDATE_AND_CHECK.md` follow karein.
 
 | Folder / file                                                           | Purpose                                                              |

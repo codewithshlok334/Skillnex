@@ -21,11 +21,4 @@ public class ResumeAIService {
     return ai.run(uid, "ResumeImprovementPrompt", Map.of("original", text));
   }
 
-  public JsonNode match(String uid, String text, String jd) {
-    return ai.run(uid, "JobMatchPrompt", Map.of("resume", text, "jobDescription", jd));
-  }
-
-  public JsonNode tailor(String uid, String text, String jd) {
-    return ai.run(uid, "ResumeTailoringPrompt", Map.of("resume", text, "jobDescription", jd));
-  }
 }

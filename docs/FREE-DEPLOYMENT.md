@@ -2,7 +2,7 @@
 
 The frontend and Spring Boot backend deploy together as **one Free Render web service**, at one HTTPS address. Neon stores the database and Gemini supplies AI responses behind that website. You do not need Vercel or a second frontend deployment.
 
-The repository's root `Dockerfile` builds React, bundles its files into the Java application, and starts one server. Pages and `/api` requests use the same origin. Refreshing a LinkedIn, interview or CodeLab page opens the app normally.
+The repository's root `Dockerfile` builds React, bundles its files into the Java application, and starts one server. Pages and `/api` requests use the same origin. Refreshing a resume, interview or CodeLab page opens the app normally.
 
 These files prepare deployment; they do not create a public site until you deploy them in your Render account.
 
@@ -49,7 +49,7 @@ The Blueprint disables automatic code deployments; later code changes need **Man
 ## 4. Check the site
 
 - Create an account, log out, log in again, and check saved profile data.
-- Refresh `/app/linkedin` and a CodeLab/interview room directly.
+- Refresh `/app/resumes` and a CodeLab/interview room directly.
 - Ask two consecutive AI questions and analyze a non-sensitive sample resume.
 - Allow microphone/camera for the public HTTPS address and test a real interview. Gemini Live model access and quota must work in your Google account.
 - Check CodeLab questions, search, theme and saved drafts.
@@ -65,7 +65,7 @@ The Blueprint disables automatic code deployments; later code changes need **Man
 | 50 CodeLab questions, editor and saved drafts | Included |
 | CodeLab Run / Submit | Configured to use the shared public Judge0 sandbox; availability and limits are best-effort |
 | Password-reset email | Requires a working mail service; not configured here |
-| Google / LinkedIn sign-in | Requires separate provider configuration |
+| Google sign-in | Requires separate provider configuration |
 
 ### CodeLab Run and Submit
 
