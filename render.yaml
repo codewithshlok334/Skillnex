@@ -56,11 +56,12 @@ services:
         sync: false
       - key: GOOGLE_ENABLED
         value: "false"
-      # No cloud code-execution sandbox is provisioned by this free Blueprint.
+      # Shared public Judge0 service; no extra Render resource or API key is needed.
+      # Availability and limits are best-effort. See docs/FREE-DEPLOYMENT.md.
       - key: CODELAB_RUNNER
         value: judge0
       - key: CODELAB_RUNNER_URL
-        value: ""
+        value: https://ce.judge0.com
       # Email delivery is not configured. This only removes mail from health checks.
       - key: MANAGEMENT_HEALTH_MAIL_ENABLED
         value: "false"

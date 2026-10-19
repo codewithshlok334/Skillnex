@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.careerx.controller.FrontendController;
+import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -16,6 +17,8 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
@@ -23,6 +26,15 @@ import org.springframework.test.web.servlet.MockMvc;
 @ActiveProfiles("test")
 class SingleSiteHostingTest {
   @Autowired MockMvc mvc;
+
+  @DynamicPropertySource
+  static void frontendPublicResources(DynamicPropertyRegistry registry) {
+    // Serve the real worklet in source-checkout tests; do not shadow the packaged
+    // asset with a test fixture that could hide a broken production file.
+    var publicDirectory = Path.of(System.getProperty("basedir", "."), "..", "frontend", "public")
+      .toAbsolutePath().normalize().toUri();
+    registry.add("spring.web.resources.static-locations", () -> publicDirectory + ",classpath:/static/");
+  }
 
   @Test
   void directNavigationAndRefreshServeTheShellWithoutAuthentication() throws Exception {
@@ -47,6 +59,25 @@ class SingleSiteHostingTest {
       .andExpect(status().isNotFound())
       .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
       .andExpect(jsonPath("$.message").value("Not found."));
+  }
+
+  @Test
+  void microphoneWorkletIsPublicJavascriptAndNeverReceivesTheHtmlShell() throws Exception {
+    mvc.perform(get("/audio/pcm-capture.js"))
+      .andExpect(status().isOk())
+      .andExpect(content().contentTypeCompatibleWith(MediaType.valueOf("text/javascript")))
+      .andExpect(content().string(containsString("registerProcessor('skillnex-pcm-capture'")))
+      .andExpect(content().string(not(containsString("SPA_TEST_SHELL"))))
+      .andExpect(header().string("X-Content-Type-Options", "nosniff"));
+    mvc.perform(head("/audio/pcm-capture.js"))
+      .andExpect(status().isOk())
+      .andExpect(content().contentTypeCompatibleWith(MediaType.valueOf("text/javascript")));
+    mvc.perform(get("/audio/missing-worklet.js"))
+      .andExpect(status().isNotFound())
+      .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+      .andExpect(jsonPath("$.message").value("Not found."));
+    mvc.perform(post("/audio/pcm-capture.js").header("Origin", "http://localhost:5173"))
+      .andExpect(status().isUnauthorized());
   }
 
   @Test

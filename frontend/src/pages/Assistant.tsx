@@ -242,22 +242,24 @@ export function Assistant({
           )}
           {!available && !config.isLoading && !config.error && (
             <div className="assistant-setup" role="status">
-              <strong>Connect your AI provider to start chatting</strong>
+              <strong>AI chat has not been set up yet</strong>
               <p>
-                The chat is ready. Live replies need an AI provider connection. Your message will
-                stay here while you set it up.
+                The site owner needs to connect an AI provider before replies are available.
+                Your message will stay here while setup is completed.
               </p>
               <details>
-                <summary>Local setup in VS Code</summary>
+                <summary>Setup guidance for the site owner</summary>
                 <ol>
                   <li>
-                    Open <code>backend/config/ai.properties.example</code> and save a copy as{' '}
-                    <code>ai.properties</code> in the same folder.
+                    For a hosted website, add your AI provider credentials and selected model in
+                    your hosting settings, then restart the service.
                   </li>
-                  <li>Enter your provider URL, model, and API key in that local file.</li>
-                  <li>Restart the backend, then check the connection below.</li>
+                  <li>
+                    For a local installation, use the AI settings file included with SkillNex,
+                    then restart the app.
+                  </li>
                 </ol>
-                <p>Never put your API key in this chat or in frontend code.</p>
+                <p>Keep provider credentials private. Never paste them into this chat.</p>
               </details>
               <Button
                 size="sm"
@@ -265,7 +267,7 @@ export function Assistant({
                 disabled={config.isFetching}
                 onClick={() => config.refetch()}
               >
-                Check connection
+                Check setup
               </Button>
             </div>
           )}

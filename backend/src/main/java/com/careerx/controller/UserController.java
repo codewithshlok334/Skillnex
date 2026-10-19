@@ -1,6 +1,7 @@
 package com.careerx.controller;
 
 import com.careerx.ai.AIService;
+import com.careerx.config.PasswordResetAvailability;
 import com.careerx.dto.Requests.*;
 import com.careerx.repository.Store;
 import jakarta.validation.Valid;
@@ -17,15 +18,18 @@ public class UserController {
   private final AIService ai;
   private final boolean demo;
   private final boolean google;
+  private final PasswordResetAvailability passwordReset;
 
   public UserController(
     Store db,
     AIService ai,
+    PasswordResetAvailability passwordReset,
     @Value("${app.demo}") boolean demo,
     @Value("${app.google-enabled:false}") boolean google
   ) {
     this.db = db;
     this.ai = ai;
+    this.passwordReset = passwordReset;
     this.demo = demo;
     this.google = google;
   }
@@ -40,7 +44,9 @@ public class UserController {
       "semanticSearch",
       ai.embeddingsAvailable(),
       "googleEnabled",
-      google
+      google,
+      "passwordResetAvailable",
+      passwordReset.available()
     );
   }
 

@@ -2,6 +2,7 @@ package com.careerx.ai;
 
 import com.careerx.repository.Store;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.io.IOException;
 import java.net.*;
 import java.net.http.*;
 import java.nio.charset.StandardCharsets;
@@ -18,6 +19,8 @@ public class HttpAIService implements AIService {
 
   private final Store db;
   private final String provider, base, key, model, embedding;
+  private final String configurationProblem;
+  private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(HttpAIService.class);
   private final HttpClient http = HttpClient.newBuilder()
     .connectTimeout(Duration.ofSeconds(10))
     .build();
@@ -31,11 +34,12 @@ public class HttpAIService implements AIService {
     @Value("${app.ai.embedding-model}") String embedding
   ) {
     this.db = db;
-    this.provider = provider;
-    this.base = base.replaceAll("/$", "");
-    this.key = key;
-    this.model = model;
-    this.embedding = embedding;
+    this.provider = clean(provider).toLowerCase(Locale.ROOT);
+    this.base = clean(base).replaceAll("/+$", "");
+    this.key = clean(key);
+    this.model = clean(model);
+    this.embedding = clean(embedding);
+    this.configurationProblem = configurationProblem();
   }
 
   public boolean available() {
@@ -55,6 +59,7 @@ public class HttpAIService implements AIService {
   }
 
   public String transcribe(byte[] wav, String language) {
+    requireConfiguration();
     if (!audioTranscriptionAvailable()) return AIService.super.transcribe(wav, language);
     var body = Map.of(
       "model", model, "max_tokens", 4000, "temperature", 0,
@@ -73,11 +78,11 @@ public class HttpAIService implements AIService {
       var result = db.parse(response.path("choices").path(0).path("message").path("content").asText().replaceAll("(?s)^\\s*```(?:json)?\\s*|\\s*```\\s*$", ""));
       if (!result.path("text").isTextual() || result.path("text").asText().length() > 15000) throw new IllegalArgumentException();
       return result.path("text").asText().trim();
-    } catch (Exception e) { throw unavailable(); }
+    } catch (Exception e) { diagnose(200, e); throw invalidResponse(); }
   }
 
   public JsonNode generate(String task, String input) {
-    if (!available()) throw unavailable();
+    requireConfiguration();
     String prompt;
     try {
       prompt = new ClassPathResource("prompts/" + task + ".txt").getContentAsString(
@@ -128,11 +133,8 @@ public class HttpAIService implements AIService {
       validate(task, result);
       return result;
     } catch (Exception e) {
-      org.slf4j.LoggerFactory.getLogger(getClass()).warn(
-        "AI response schema rejected for {}",
-        task
-      );
-      throw unavailable();
+      diagnose(200, e);
+      throw invalidResponse();
     }
   }
 
@@ -141,6 +143,7 @@ public class HttpAIService implements AIService {
   }
 
   private JsonNode send(String path, Object body, boolean assistant) {
+    requireConfiguration();
     int attempts = assistant ? 1 : 2;
     for (int attempt = 0; attempt < attempts; attempt++) {
       try {
@@ -155,7 +158,18 @@ public class HttpAIService implements AIService {
           builder.POST(HttpRequest.BodyPublishers.ofString(db.text(body))).build(),
           HttpResponse.BodyHandlers.ofString()
         );
-        if (res.statusCode() >= 200 && res.statusCode() < 300) return db.parse(res.body());
+        if (res.statusCode() >= 200 && res.statusCode() < 300) {
+          try {
+            var result = db.parse(res.body());
+            if (result == null || !result.isObject()) throw new IllegalArgumentException();
+            return result;
+          } catch (Exception e) {
+            diagnose(res.statusCode(), e);
+            if (attempt + 1 < attempts) continue;
+            throw invalidResponse();
+          }
+        }
+        diagnose(res.statusCode(), null);
         if (attempt + 1 < attempts && (res.statusCode() == 429 || res.statusCode() >= 500)) {
           Thread.sleep(750);
           continue;
@@ -172,18 +186,38 @@ public class HttpAIService implements AIService {
           HttpStatus.SERVICE_UNAVAILABLE,
           "The configured AI model or provider URL is unavailable. Check the backend AI settings."
         );
+        if (res.statusCode() == 400 || res.statusCode() == 422) throw new ResponseStatusException(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          "AI provider rejected the request format or model settings. Ask the site owner to check AI_PROVIDER, AI_BASE_URL and AI_MODEL compatibility."
+        );
+        if (res.statusCode() >= 300 && res.statusCode() < 400) throw new ResponseStatusException(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          "AI provider redirected the request. Ask the site owner to set AI_BASE_URL to the provider's API endpoint."
+        );
         throw unavailable();
       } catch (HttpTimeoutException e) {
+        diagnose(0, e);
         if (attempt + 1 == attempts) throw new ResponseStatusException(
           HttpStatus.GATEWAY_TIMEOUT,
           "The AI provider took too long to reply. Your message is kept. Please retry in a moment, or ask a shorter question."
         );
       } catch (InterruptedException e) {
+        diagnose(0, e);
         Thread.currentThread().interrupt();
-        throw unavailable();
+        throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "The AI request was interrupted. Please retry.");
       } catch (ResponseStatusException e) {
         throw e;
+      } catch (IllegalArgumentException e) {
+        diagnose(0, e);
+        throw configurationError("AI request settings are invalid. Ask the site owner to check AI_BASE_URL, AI_API_KEY and AI_MODEL.");
+      } catch (IOException e) {
+        diagnose(0, e);
+        if (attempt + 1 == attempts) throw new ResponseStatusException(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          "The server could not connect to the AI provider. Ask the site owner to check the server's network, DNS and TLS access to the provider."
+        );
       } catch (Exception e) {
+        diagnose(0, e);
         if (attempt + 1 == attempts) throw unavailable();
       }
     }
@@ -191,17 +225,28 @@ public class HttpAIService implements AIService {
   }
 
   public double[] embed(String text) {
-    if (!embeddingsAvailable()) throw unavailable();
+    requireConfiguration();
+    if (!embeddingsAvailable()) throw configurationError("Semantic search is not configured. Ask the site owner to check AI_EMBEDDING_MODEL and provider support.");
+    if (!visibleAscii(embedding)) {
+      diagnose(0, new IllegalArgumentException());
+      throw configurationError("AI_EMBEDDING_MODEL contains unsupported characters. Enter a valid model ID.");
+    }
     var res = send(
       "/embeddings",
       Map.of("model", embedding, "input", text.substring(0, Math.min(12000, text.length())))
     );
     var a = res.path("data").path(0).path("embedding");
-    if (!a.isArray() || a.size() < 8 || a.size() > 8192) throw unavailable();
+    if (!a.isArray() || a.size() < 8 || a.size() > 8192) {
+      diagnose(200, new IllegalArgumentException());
+      throw invalidResponse();
+    }
     double[] v = new double[a.size()];
     for (int i = 0; i < v.length; i++) {
       v[i] = a.get(i).asDouble();
-      if (!Double.isFinite(v[i])) throw unavailable();
+      if (!a.get(i).isNumber() || !Double.isFinite(v[i])) {
+        diagnose(200, new IllegalArgumentException());
+        throw invalidResponse();
+      }
     }
     return v;
   }
@@ -324,6 +369,53 @@ public class HttpAIService implements AIService {
 
   private void array(JsonNode n, String key) {
     if (!n.path(key).isArray() || n.path(key).size() > 100) throw new IllegalArgumentException();
+  }
+
+  private String configurationProblem() {
+    if (!Set.of("compatible", "anthropic").contains(provider)) return "AI_PROVIDER must be compatible or anthropic.";
+    if (!validBase(base)) return "AI_BASE_URL must be an HTTP or HTTPS API URL with a host, without credentials, a query or a fragment.";
+    if (key.isBlank()) return "AI_API_KEY is missing. Ask the site owner to configure the server's AI credential.";
+    if (!visibleAscii(key)) return "AI_API_KEY contains unsupported characters. Re-enter it without spaces, line breaks, control characters or non-ASCII characters.";
+    if (model.isBlank() || !visibleAscii(model)) return "AI_MODEL must be a model ID without spaces, line breaks, control characters or non-ASCII characters.";
+    return null;
+  }
+
+  private void requireConfiguration() {
+    if (configurationProblem != null) {
+      diagnose(0, new IllegalArgumentException());
+      throw configurationError(configurationProblem);
+    }
+  }
+
+  static String clean(String value) { return value == null ? "" : value.strip(); }
+  static boolean visibleAscii(String value) {
+    return !value.isEmpty() && value.chars().allMatch(c -> c >= 33 && c <= 126);
+  }
+  static boolean validBase(String value) {
+    if (!visibleAscii(value)) return false;
+    try {
+      URI uri = URI.create(value);
+      return ("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme())) && uri.getHost() != null
+        && uri.getUserInfo() == null && uri.getQuery() == null && uri.getFragment() == null
+        && uri.getPort() <= 65535;
+    } catch (IllegalArgumentException e) { return false; }
+  }
+  static String rootType(Throwable error) {
+    var seen = Collections.newSetFromMap(new IdentityHashMap<Throwable, Boolean>());
+    while (error.getCause() != null && seen.add(error)) error = error.getCause();
+    return error.getClass().getSimpleName();
+  }
+  private void diagnose(int status, Throwable error) {
+    // Never log provider bodies, request data, URLs, credentials or exception messages.
+    log.warn("AI provider failure: status={} exception={} root={}", status,
+      error == null ? "none" : error.getClass().getSimpleName(), error == null ? "none" : rootType(error));
+  }
+  private ResponseStatusException configurationError(String message) {
+    return new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "AI server configuration needs attention. " + message);
+  }
+  private ResponseStatusException invalidResponse() {
+    return new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+      "AI provider returned an invalid or incomplete response. Ask the site owner to check the configured model and structured-output compatibility.");
   }
 
   private ResponseStatusException unavailable() {

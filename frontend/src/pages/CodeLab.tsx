@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { CSSProperties } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -7,11 +7,13 @@ import { java } from '@codemirror/lang-java';
 import { cpp } from '@codemirror/lang-cpp';
 import { python } from '@codemirror/lang-python';
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronLeft, ChevronRight, Code2, BookOpen, Lightbulb, Play, Send, Save, Search, Terminal, Clock3, RotateCcw, LoaderCircle, X } from 'lucide-react';
-import { api, post, put } from '../api/client';
+import { api, post, put, ApiError } from '../api/client';
 import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
 import { ErrorState, Loading } from '../components/Common';
 import { useEditorPreferences, useWorkspaceTheme } from '../hooks/useWorkspacePreferences';
+import { useSession } from '../hooks/useSession';
+import { codeLabDraft } from '../utils/codeLabDraft';
 import '../codelab.css';
 import '../codelab-workspace.css';
 
@@ -61,7 +63,7 @@ export function CodeLab() {
       <div className="cl-progress-card"><span className="cl-kicker">YOUR PRACTICE LOG</span><div className="cl-progress-number">{progress?.solved ?? '—'}<span> / {progress?.total ?? 50}</span></div><p>problems solved</p><progress aria-label="Solved problems" value={progress?.solved || 0} max={progress?.total || 50} /><small>One accepted submission. One step forward.</small></div>
     </header>
     <div className="cl-section-head"><div><h2>The problem set</h2><p>50 original DSA challenges, from first principles to deeper patterns.</p></div><span className="cl-library-note"><BookOpen size={16} /> Hints & solutions included</span></div>
-    {runner.data && !runner.data.configured && <div className="cl-notice"><Terminal size={18} /><p>The code runner is offline. Start your configured runner to use Run and Submit. You can still explore questions and save your code.</p></div>}
+    {runner.data && !runner.data.configured && <div className="cl-notice"><Terminal size={18} /><p>Code execution is not connected. The site owner needs to connect a code sandbox to enable Run and Submit. You can still explore questions and save your drafts.</p></div>}
     <div className="cl-filters">
       <form onSubmit={e => { e.preventDefault(); filter('search', searchDraft.trim()); }} className="cl-search"><Search size={17} /><input aria-label="Search problems or topics" placeholder="Search title or topic: arrays, DP…" maxLength={120} value={searchDraft} onChange={e => setSearchDraft(e.target.value)} /><button type="submit">Search</button></form>
       <select aria-label="Filter by topic" value={topic} onChange={e => filter('topic', e.target.value)}><option value="">All topics</option>{bank.data?.topics.map(t => <option key={t}>{t}</option>)}</select>
@@ -80,6 +82,7 @@ export function CodeLab() {
 }
 
 export function CodeLabRoom() {
+  const { user } = useSession();
   const { preferences } = useEditorPreferences();
   const defaultLanguage = useRef(preferences.language);
   const { id } = useParams();
@@ -87,21 +90,25 @@ export function CodeLabRoom() {
   const chosen = params.get('language') || defaultLanguage.current;
   const language: Language = languages.some(l => l.id === chosen) ? chosen as Language : 'python';
   const questionId = Number(id);
-  const question = useQuery({ queryKey: ['codelab-question', questionId, language], queryFn: () => api<Detail>(`/codelab/questions/${questionId}?language=${language}`), enabled: Number.isInteger(questionId) && questionId > 0 });
+  const question = useQuery({ queryKey: ['codelab-question', questionId, language, user.id], queryFn: () => api<Detail>(`/codelab/questions/${questionId}?language=${language}`), enabled: Number.isInteger(questionId) && questionId > 0 });
   if (!Number.isInteger(questionId) || questionId < 1) return <ErrorState error={new Error('This problem could not be found.')} />;
   if (question.isLoading) return <Loading text="Preparing your workspace…" />;
   if (question.error) return <ErrorState error={question.error} retry={() => question.refetch()} />;
-  return question.data ? <ProblemWorkspace key={`${id}:${language}`} question={question.data} language={language} /> : null;
+  return question.data ? <ProblemWorkspace key={`${user.id}:${id}:${language}`} question={question.data} language={language} /> : null;
 }
 
 function ProblemWorkspace({ question: q, language }: { question: Detail; language: Language }) {
+  const { user } = useSession();
   const { preferences } = useEditorPreferences();
   const { theme } = useWorkspaceTheme();
   const editorExtensions = useMemo(() => [...extensions[language], EditorState.tabSize.of(preferences.tabSize), ...(preferences.lineWrap ? [EditorView.lineWrapping] : [])], [language, preferences.tabSize, preferences.lineWrap]);
   const cache = useQueryClient(), navigate = useNavigate();
-  const [code, setCode] = useState(q.draft?.code ?? q.starter);
-  const [savedCode, setSavedCode] = useState(q.draft?.code ?? q.starter);
-  const [revision, setRevision] = useState(q.draft?.revision ?? 0);
+  const [draft] = useState(() => codeLabDraft(user.id, q.id, language, q.draft ?? { code: q.starter, revision: 0 }));
+  const { code, savedCode, revision } = useSyncExternalStore(draft.subscribe, draft.getSnapshot);
+  const setCode = draft.edit;
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  useEffect(() => { draft.reconcile(q.draft ?? { code: q.starter, revision: 0 }); }, [draft, q.draft?.code, q.draft?.revision, q.starter]);
   const [tab, setTab] = useState<'problem' | 'hints' | 'solution' | 'history'>('problem');
   const [mobilePane, setMobilePane] = useState<'problem' | 'code'>('problem');
   const [saving, setSaving] = useState(false), [sending, setSending] = useState(false);
@@ -110,6 +117,7 @@ function ProblemWorkspace({ question: q, language }: { question: Detail; languag
   const [restored, setRestored] = useState(false);
   const actionPending = useRef(false), lastCompleted = useRef('');
   const dirty = code !== savedCode;
+  const newerSavedDraft = dirty && q.draft && q.draft.revision > revision && q.draft.code !== code ? q.draft : null;
   const runner = useQuery({ queryKey: ['codelab-runner'], queryFn: () => api<Runner>('/codelab/status'), refetchInterval: 10000 });
   const hints = useQuery({ queryKey: ['codelab-hints', q.id], queryFn: () => api<string[]>(`/codelab/questions/${q.id}/hints`), enabled: tab === 'hints' });
   const solution = useQuery({ queryKey: ['codelab-solution', q.id, language], queryFn: () => api<{ code: string; approach: string; complexity: string }>(`/codelab/questions/${q.id}/solution?language=${language}`), enabled: tab === 'solution' });
@@ -141,7 +149,7 @@ function ProblemWorkspace({ question: q, language }: { question: Detail; languag
       event.preventDefault(); event.stopPropagation();
       if (actionPending.current || saving || sending) return;
       actionPending.current = true;
-      void save().then(ok => { if (ok) navigate(destination.pathname + destination.search + destination.hash); })
+      void save().then(ok => { if (ok && mounted.current) navigate(destination.pathname + destination.search + destination.hash); })
         .finally(() => { actionPending.current = false; });
     }
     document.addEventListener('click', preserveBeforeNavigation, true);
@@ -157,34 +165,40 @@ function ProblemWorkspace({ question: q, language }: { question: Detail; languag
     return () => window.removeEventListener('skillnex-save-before-logout', beforeLogout);
   }, [dirty, code, revision, saving, sending]);
   async function save() {
-    if (!dirty && revision > 0) return true;
-    const snapshot = code;
+    const snapshot = draft.getSnapshot();
+    if (snapshot.code === snapshot.savedCode && snapshot.revision > 0) return true;
     setSaving(true); setError(undefined);
     try {
-      const value = await put<{ revision: number }>(`/codelab/questions/${q.id}/draft?language=${language}`, { code: snapshot, revision });
-      setRevision(value.revision); setSavedCode(snapshot);
-      cache.setQueryData<Detail>(['codelab-question', q.id, language], old => old ? { ...old, draft: { code: snapshot, revision: value.revision } } : old);
+      const value = await put<{ revision: number }>(`/codelab/questions/${q.id}/draft?language=${language}`, { code: snapshot.code, revision: snapshot.revision });
+      draft.saved(snapshot.code, value.revision);
+      cache.setQueryData<Detail>(['codelab-question', q.id, language, user.id], old => old ? { ...old, draft: { code: snapshot.code, revision: value.revision } } : old);
       return true;
-    } catch (err) { setError(err); return false; } finally { setSaving(false); }
+    } catch (err) {
+      if (mounted.current) {
+        setError(err);
+        if (err instanceof ApiError && err.status === 409) void cache.invalidateQueries({ queryKey: ['codelab-question', q.id, language, user.id] });
+      }
+      return false;
+    } finally { if (mounted.current) setSaving(false); }
   }
   async function changeLanguage(value: Language) {
     if (actionPending.current) return;
     actionPending.current = true;
-    try { if (!dirty || await save()) navigate(`/app/codelab/${q.id}?language=${value}`); } finally { actionPending.current = false; }
+    try { if ((!dirty || await save()) && mounted.current) navigate(`/app/codelab/${q.id}?language=${value}`); } finally { actionPending.current = false; }
   }
   async function leave() {
     if (actionPending.current) return;
     actionPending.current = true;
-    try { if (!dirty || await save()) navigate('/app/codelab'); } finally { actionPending.current = false; }
+    try { if ((!dirty || await save()) && mounted.current) navigate('/app/codelab'); } finally { actionPending.current = false; }
   }
   async function submit(mode: 'RUN' | 'SUBMIT') {
     if (actionPending.current || judging || saving) return;
     actionPending.current = true; setSending(true); setError(undefined);
     try {
-      if (!await save()) return;
+      if (!await save() || !mounted.current) return;
       const result = await post<{ id: string }>(`/codelab/questions/${q.id}/submissions`, { code, language, mode, requestKey: crypto.randomUUID() });
-      setSubmissionId(result.id); setRestored(false);
-    } catch (err) { setError(err); } finally { actionPending.current = false; setSending(false); }
+      if (mounted.current) { setSubmissionId(result.id); setRestored(false); }
+    } catch (err) { if (mounted.current) setError(err); } finally { actionPending.current = false; if (mounted.current) setSending(false); }
   }
   const languageName = languages.find(l => l.id === language)!;
   return <div className="codelab cl-room" data-mobile-pane={mobilePane} style={{ '--cl-font-size': `${preferences.fontSize}px` } as CSSProperties}>
@@ -206,7 +220,8 @@ function ProblemWorkspace({ question: q, language }: { question: Detail; languag
           <footer className="cl-run-controls"><Button variant="ghost" size="sm" disabled={saving || sending || code.length > 40000 || (!dirty && revision > 0)} onClick={() => void save()}><Save size={16} />Save draft</Button><div><Button variant="secondary" disabled={!runner.data?.configured || judging || saving || !code.trim() || code.length > 40000} onClick={() => void submit('RUN')}><Play size={15} />Run</Button><Button disabled={!runner.data?.configured || judging || saving || !code.trim() || code.length > 40000} onClick={() => void submit('SUBMIT')}>{judging ? <LoaderCircle size={16} className="spin" /> : <Send size={15} />}{judging ? 'Checking…' : 'Submit'}</Button></div></footer>
           <p className="cl-run-help">Run checks the examples. Submit checks examples + hidden cases.{language === 'java' && ' Java entry point: public class Main.'}</p>
         </section>
-        {runner.data && !runner.data.configured && <div className="cl-notice"><Terminal size={18} /><p>The code runner is offline. Start your configured runner to use Run and Submit. Your draft can still be saved.</p></div>}
+        {newerSavedDraft && <div className="cl-notice" role="status"><div><p>A newer saved version exists. Your unfinished edits are still here. Choose which version to keep before saving.</p><div className="button-row"><Button size="sm" disabled={saving || sending} onClick={() => { draft.resolve(newerSavedDraft, true); setError(undefined); }}>Keep my edits</Button><Button size="sm" variant="secondary" disabled={saving || sending} onClick={() => { draft.resolve(newerSavedDraft, false); setError(undefined); }}>Load saved version</Button></div></div></div>}
+        {runner.data && !runner.data.configured && <div className="cl-notice"><Terminal size={18} /><p>Code execution is not connected. The site owner needs to connect a code sandbox to enable Run and Submit. You can still explore questions and save your drafts.</p></div>}
         {runner.data?.configured && <p className="cl-runner-destination">Run/Submit sends your code and test inputs to the configured sandbox: {runner.data.destination}. Account details are not sent.</p>}
         {runner.error && <ErrorState error={runner.error} retry={() => runner.refetch()} />}
         {error ? <ErrorState error={error} /> : null}

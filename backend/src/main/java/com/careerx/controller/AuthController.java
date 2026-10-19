@@ -1,6 +1,7 @@
 package com.careerx.controller;
 
 import com.careerx.dto.Requests.*;
+import com.careerx.config.PasswordResetAvailability;
 import com.careerx.repository.Store;
 import com.careerx.security.*;
 import jakarta.servlet.http.*;
@@ -27,6 +28,7 @@ public class AuthController {
   private final Tokens tokens;
   private final RateLimit rate;
   private final JavaMailSender mail;
+  private final PasswordResetAvailability passwordReset;
   private final boolean demo;
   private final String origin, from;
 
@@ -36,6 +38,7 @@ public class AuthController {
     Tokens tokens,
     RateLimit rate,
     JavaMailSender mail,
+    PasswordResetAvailability passwordReset,
     @Value("${app.demo}") boolean demo,
     @Value("${app.origin}") String origin,
     @Value("${app.mail-from}") String from
@@ -45,6 +48,7 @@ public class AuthController {
     this.tokens = tokens;
     this.rate = rate;
     this.mail = mail;
+    this.passwordReset = passwordReset;
     this.demo = demo;
     this.origin = origin.split(",")[0];
     this.from = from;
@@ -124,6 +128,10 @@ public class AuthController {
 
   @PostMapping("/forgot-password")
   public Object forgot(@Valid @RequestBody Email in, HttpServletRequest req) {
+    if (!passwordReset.available()) throw new ResponseStatusException(
+      HttpStatus.SERVICE_UNAVAILABLE,
+      "Password reset is unavailable because email delivery has not been set up. Please contact the site administrator."
+    );
     rate.check("reset:" + req.getRemoteAddr(), 5, 900);
     var rows = db.list(
       "SELECT id FROM app_users WHERE email=? AND password_hash IS NOT NULL",

@@ -53,6 +53,7 @@ The Blueprint disables automatic code deployments; later code changes need **Man
 - Ask two consecutive AI questions and analyze a non-sensitive sample resume.
 - Allow microphone/camera for the public HTTPS address and test a real interview. Gemini Live model access and quota must work in your Google account.
 - Check CodeLab questions, search, theme and saved drafts.
+- In CodeLab, verify Run and Submit with a small correct program in Java, C++ and Python; also check that incorrect output is not accepted.
 - Open the public link from another device with your laptop off.
 
 ## What is included and what still needs setup
@@ -62,11 +63,23 @@ The Blueprint disables automatic code deployments; later code changes need **Man
 | Website, login, profiles, resumes, chats and reports | One Render service with persistent data in Neon |
 | AI assistant, analysis and AI interviews | Uses your configured Gemini models and quota |
 | 50 CodeLab questions, editor and saved drafts | Included |
-| CodeLab Run / Submit | Requires a separate isolated cloud code runner |
+| CodeLab Run / Submit | Configured to use the shared public Judge0 sandbox; availability and limits are best-effort |
 | Password-reset email | Requires a working mail service; not configured here |
 | Google / LinkedIn sign-in | Requires separate provider configuration |
 
-The laptop's Docker code runner cannot process cloud submissions while the laptop is off. Do not expose its unauthenticated port to the internet. A cloud runner must remain isolated from the web app and database.
+### CodeLab Run and Submit
+
+The Blueprint connects CodeLab to the official public Judge0 service at `https://ce.judge0.com`. No extra Render service, runner API key or laptop is needed. Java, C++ and Python were checked with harmless programs through its batch API on 2026-10-19. The [official Judge0 repository](https://github.com/judge0/judge0) documents the API; its [language list](https://ce.judge0.com/languages) includes the application's default language IDs.
+
+This is a shared public service, with no guaranteed availability, service-level agreement or fixed free allowance promised by this project. Requests may be limited or unavailable. Failed execution never counts as an accepted solution, and saved drafts remain available in Neon.
+
+Run and Submit send the program's source code and test inputs to `ce.judge0.com` for isolated execution. Account passwords, resumes and AI credentials are not sent. Run checks two examples; Submit checks all six cases. Avoid putting private information or credentials in submitted code.
+
+**For an existing Render service with execution disabled**, set `CODELAB_RUNNER=judge0` and `CODELAB_RUNNER_URL=https://ce.judge0.com` in that service's environment, then save and redeploy. A code-only deployment does not change an existing empty runner URL. For this public endpoint, leave `CODELAB_RUNNER_KEY` and `CODELAB_RAPIDAPI_HOST` unset or empty; clear credentials from a previous runner before switching URLs. If you already use your own working hosted runner, retain its URL and credentials instead of replacing them with these defaults.
+
+The local Docker setup remains separate and is not overwritten by these deployment defaults. It needs the laptop to stay on. Do not expose its unauthenticated port to the internet; cloud execution must remain isolated from the web app and database.
+
+### Password-reset email
 
 Free Render blocks SMTP ports 25, 465 and 587. The Blueprint disables the mail health check; this does not enable email delivery. Test password reset after configuring a supported mail transport.
 

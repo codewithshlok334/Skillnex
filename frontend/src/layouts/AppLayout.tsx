@@ -326,7 +326,7 @@ export function AppLayout() {
             <span>Craft Your Resume. Crack Your Interview</span>
             <span>
               <span className="status-dot" />{' '}
-              {config.data.aiAvailable ? 'AI connected' : 'AI provider not connected'}
+              {config.data.aiAvailable ? 'AI configured' : 'AI not configured'}
               <span className="footer-separator">·</span>SkillNex © {new Date().getFullYear()}
             </span>
           </footer>

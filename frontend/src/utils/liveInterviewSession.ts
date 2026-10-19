@@ -7,8 +7,21 @@ export type LiveSnapshot = {
   state: LiveState; detail: string; level: number; mouth: number; input: string;
   output: string; muted: boolean; pending: boolean; finished: boolean;
 };
-export const idleLive: LiveSnapshot = {state:"ENDED", detail:"Test your microphone, then speak naturally.", level:0, mouth:0, input:"", output:"", muted:false, pending:false, finished:false};
+export const idleLive: LiveSnapshot = {state:"ENDED", detail:"Start voice to hear your first question, then speak naturally.", level:0, mouth:0, input:"", output:"", muted:false, pending:false, finished:false};
 const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained";
+
+// Never echo provider text: close reasons can contain credentials or request data.
+export function liveConnectionError(code: number | string, reason = "") {
+  if ([429, "RESOURCE_EXHAUSTED"].includes(code) || /quota|resource.exhausted|rate.limit/i.test(reason))
+    return "Gemini Live has reached its usage limit. Try again later, or continue with text. The site owner can check the Gemini project's Live quota.";
+  if (/expired|invalid.*token|token.*invalid|unauthenticated/i.test(reason) || code === "UNAUTHENTICATED" || code === 401)
+    return "The voice session expired or could not sign in. Retry voice to create a fresh session.";
+  if ([403, "PERMISSION_DENIED"].includes(code) || /permission|access.denied|not.authorized/i.test(reason))
+    return "Gemini Live access was denied. The site owner needs to check the Gemini key and Live model access in Render's environment settings.";
+  if ([404, "NOT_FOUND"].includes(code) || /model.*(not found|not supported|not available)|unsupported.*model/i.test(reason))
+    return "The configured Gemini Live model is unavailable. The site owner needs to update GEMINI_LIVE_MODEL in Render's environment settings.";
+  return "Gemini Live could not connect. Retry voice; if it keeps failing, check the Gemini Live model and quota. You can continue with text.";
+}
 
 /** One instance owns one mic, one AudioContext and at most one socket. No recordings. */
 export class LiveInterviewSession {
@@ -27,7 +40,6 @@ export class LiveInterviewSession {
   private responseTimer?: ReturnType<typeof setTimeout>;
   private testTimer?: ReturnType<typeof setTimeout>;
   private tested = false;
-  private testSeconds = 0;
   private speechSeconds = 0;
   private voiceFrames = 0;
   private silence = 0;
@@ -61,7 +73,7 @@ export class LiveInterviewSession {
   }
   async start(deviceId?: string) {
     if (this.audio || this.stopped) return;
-    this.update({state:"INITIALIZING", detail:"Allow the microphone and say hello to test it.", input:"", output:""});
+    this.update({state:"INITIALIZING", detail:"Allow microphone access. Your interviewer will connect automatically.", input:"", output:""});
     this.audio = this.makeAudio({
       samples: (pcm, rms, seconds) => this.capture(pcm, rms, seconds),
       mouth: mouth => { if (!this.stopped) this.update({mouth}); },
@@ -75,10 +87,17 @@ export class LiveInterviewSession {
     // Covers a permission prompt left unanswered, as well as an unresponsive device.
     this.testTimer = this.later(() => this.fail("Microphone did not become ready. Allow microphone access in Chrome and retry."), 30000);
     try {
-      await this.audio.open(deviceId);
+      // A dismissed permission prompt must not leave Start/Retry waiting forever.
+      let stopWaiting!: () => void;
+      const stopped = new Promise<void>(resolve => { stopWaiting = resolve; });
+      this.tokenAbort.signal.addEventListener("abort", stopWaiting, {once:true});
+      try { await Promise.race([this.audio.open(deviceId), stopped]); }
+      finally { this.tokenAbort.signal.removeEventListener("abort", stopWaiting); }
       if (this.stopped) return;
-      this.clear(this.testTimer);
-      this.testTimer = this.later(() => this.fail("No microphone sound detected. Check the selected input and Windows microphone permission, then retry."), 12000);
+      if (!this.tested) {
+        this.clear(this.testTimer);
+        this.testTimer = this.later(() => this.fail("The microphone opened but is not sending audio. Select another microphone and retry."), 12000);
+      }
     } catch (error) {
       if (this.stopped) return;
       const name = error instanceof DOMException ? error.name : "";
@@ -92,13 +111,14 @@ export class LiveInterviewSession {
     if (this.stopped) return;
     this.update({level:Math.min(100, rms * 700)});
     if (!this.tested) {
-      if (rms > 0.008) this.testSeconds += seconds;
-      if (this.testSeconds >= 0.25) {
+      // A real PCM block proves capture is running, even while the candidate is
+      // quietly waiting for the first question. Do not mistake silence for failure.
+      if (pcm.length && seconds > 0 && Number.isFinite(rms)) {
         this.tested = true; this.clear(this.testTimer);
         this.update({state:"CONNECTING", detail:"Microphone detected. Connecting your interviewer…"});
         void this.connect(false);
       }
-      return; // Test speech is never submitted as an interview answer.
+      return; // Initial microphone samples are never submitted as an answer.
     }
     if (!this.ready || this.snapshot.muted || this.snapshot.finished) return;
     if (!this.socket || this.socket.bufferedAmount > 128000) { this.fail("Connection is too slow for live audio. Retry voice or continue with text."); return; }
@@ -167,7 +187,7 @@ export class LiveInterviewSession {
       ws.onerror = () => { /* onclose owns retry; never create a second socket here. */ };
       ws.onclose = event => {
         if (this.stopped || this.socket !== ws) return;
-        if ([1008, 1007].includes(event.code)) this.fail("Gemini Live rejected this session. Check Live model access and quota in the backend configuration.");
+        if ([1008, 1007].includes(event.code)) this.fail(liveConnectionError(event.code, event.reason));
         else this.reconnect();
       };
     } catch (error) {
@@ -175,7 +195,7 @@ export class LiveInterviewSession {
     }
   }
   private receive(message: Data, resumed: boolean) {
-    if (message.error) { this.fail("Gemini Live could not continue. Check provider quota/model access and retry."); return; }
+    if (message.error) { this.fail(liveConnectionError(message.error.status || message.error.code, String(message.error.message || ""))); return; }
     if (message.setupComplete) {
       this.clear(this.setupTimer); this.ready = true; this.discardAudio = false;
       this.later(() => { if (this.ready) this.attempts = 0; }, 30000);

@@ -21,6 +21,7 @@ export interface Config {
   aiAvailable: boolean;
   semanticSearch: boolean;
   googleEnabled: boolean;
+  passwordResetAvailable: boolean;
 }
 export interface Breakdown {
   label: string;

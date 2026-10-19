@@ -55,7 +55,8 @@ export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
   const [liveMode, setLiveMode] = useState(!practice);
   const live = useLiveInterview(interview);
   const liveSpeaking = live.snapshot.state === "AI_SPEAKING";
-  const liveListening = !["ENDED", "ERROR", "INITIALIZING", "CONNECTING"].includes(live.snapshot.state) && !live.snapshot.muted;
+  const liveListening = !["ENDED", "ERROR", "INITIALIZING", "CONNECTING", "RECONNECTING"].includes(live.snapshot.state) && !live.snapshot.muted;
+  const liveIdle = ["ERROR", "ENDED"].includes(live.snapshot.state);
   const coding = interview.kind === "Coding";
   const [draft, setDraft] = useState("");
   const [code, setCode] = useState("");
@@ -90,6 +91,16 @@ export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [showAnswer, setShowAnswer] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
+  function startLiveVoice() {
+    setShowAnswer(true);
+    if (live.snapshot.input.trim()) {
+      toast.info("Your answer is kept. Review it in Your answer before restarting voice.");
+      return;
+    }
+    let device = "";
+    try { device = sessionStorage.getItem("skillnex-interview-mic") || ""; } catch {}
+    void live.start(device);
+  }
   const [cameraControls, setCameraControls] = useState<HTMLDivElement | null>(
     null,
   );
@@ -415,6 +426,7 @@ export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
         },
       );
       if (["advanced", "finished", "followup-failed"].includes(result)) {
+        live.answerSaved(current.id);
         setDraft("");
         setCode("");
       }
@@ -448,7 +460,7 @@ export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
     stopSpeech();
     onEnd();
   }
-  const state = liveMode ? (live.snapshot.state === "ENDED" ? "Ready" : live.snapshot.state.replaceAll("_", " ").toLowerCase()) : listening
+  const state = liveMode ? (live.snapshot.state === "ERROR" ? "Voice disconnected" : live.snapshot.state === "ENDED" ? "Ready" : live.snapshot.state.replaceAll("_", " ").toLowerCase()) : listening
     ? recordedVoice
       ? "Listening to your answer"
       : "Listening to your answer"
@@ -535,6 +547,14 @@ export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
               ? "Follow-up on your answer"
               : `Core question ${interview.progression.mainQuestion} of ${interview.progression.mainQuestionCount}`}
           </small>
+        </div>
+      )}
+      {liveMode && live.snapshot.state === "ERROR" && (
+        <div className="meeting-voice-error" role="alert">
+          <div><strong>Voice connection needs attention</strong><p>{live.snapshot.detail}</p></div>
+          <Button type="button" variant="secondary" onClick={startLiveVoice}>
+            <RotateCcw size={16}/>{live.snapshot.input.trim() ? "Review answer" : "Retry voice"}
+          </Button>
         </div>
       )}
       <div className="interview-meeting-grid">
@@ -937,9 +957,9 @@ export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
             </span>
           </Button>
           <div ref={setRecordControls} hidden={!recordedVoice || liveMode} />
-          {liveMode && <Button className="meeting-tool" variant="secondary" disabled={["INITIALIZING", "CONNECTING", "RECONNECTING", "ERROR", "ENDED"].includes(live.snapshot.state) || live.snapshot.finished} onClick={() => live.mute()}>
-            {live.snapshot.muted ? <MicOff size={20}/> : <Mic size={20}/>}
-            <span>{live.snapshot.muted ? "Unmute mic" : "Mute mic"}</span>
+          {liveMode && <Button className="meeting-tool" variant="secondary" disabled={["INITIALIZING", "CONNECTING", "RECONNECTING"].includes(live.snapshot.state) || live.snapshot.finished} onClick={() => liveIdle ? startLiveVoice() : live.mute()}>
+            {live.snapshot.state === "ERROR" ? <RotateCcw size={20}/> : live.snapshot.muted ? <MicOff size={20}/> : <Mic size={20}/>}
+            <span>{live.snapshot.state === "ERROR" ? "Retry voice" : live.snapshot.state === "ENDED" ? "Start mic" : live.snapshot.state === "INITIALIZING" ? "Opening mic…" : ["CONNECTING", "RECONNECTING"].includes(live.snapshot.state) ? "Connecting…" : live.snapshot.muted ? "Unmute mic" : "Mute mic"}</span>
           </Button>}
           <div ref={setCameraControls} className="meeting-camera-control" />
           <Button
@@ -949,7 +969,7 @@ export function InterviewExperience({ interview, busy, action, onEnd }: Props) {
             disabled={!liveMode && !speechSupported}
             onClick={() => {
               stopSpeech();
-              if (liveMode) live.muteOutput(voiceOn);
+              live.muteOutput(voiceOn);
               setVoiceOn(!voiceOn);
             }}
           >

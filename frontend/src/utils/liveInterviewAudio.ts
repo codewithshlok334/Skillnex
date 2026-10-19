@@ -50,6 +50,20 @@ export function audioMouthOpening(samples: Float32Array) {
   return Math.min(1, Math.max(0, (Math.sqrt(energy / Math.max(1, samples.length)) - 0.008) * 9));
 }
 
+function microphoneError(error: unknown) {
+  const name = error instanceof Error ? error.name : "";
+  const message = name === "NotAllowedError" || name === "SecurityError"
+    ? "Microphone access is blocked. Allow microphone access in your browser's site settings and device privacy settings, then retry."
+    : name === "NotFoundError" || name === "OverconstrainedError"
+      ? "No available microphone was found. Connect a microphone or choose System default, then retry."
+      : name === "NotReadableError"
+        ? "Your microphone could not be opened. Close other recording apps and check your device's microphone settings, then retry."
+        : name === "AbortError"
+          ? "Microphone startup was interrupted. Please retry."
+          : error instanceof Error ? error.message : "Microphone could not start. Please retry.";
+  return new Error(message);
+}
+
 export class LiveInterviewAudio {
   private context?: AudioContext;
   private stream?: MediaStream;
@@ -73,49 +87,72 @@ export class LiveInterviewAudio {
   }) {}
 
   async open(deviceId?: string) {
-    if (!navigator.mediaDevices?.getUserMedia || !window.AudioWorkletNode)
+    if (!navigator.mediaDevices?.getUserMedia || typeof AudioContext === "undefined" || typeof AudioWorkletNode === "undefined")
       throw new Error("Live microphone needs a supported browser on HTTPS or localhost.");
-    this.context = new AudioContext({ sampleRate: 16000, latencyHint: "interactive" });
-    await this.context.resume();
     if (this.ended) return;
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: {
-      echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1,
-      ...(deviceId ? {deviceId: {exact: deviceId}} : {}),
-    }, video: false });
-    if (this.ended) { stream.getTracks().forEach(t => t.stop()); return; }
-    this.stream = stream;
-    for (const track of stream.getAudioTracks()) track.onended = () => {
-      if (!this.ended) this.events.error("Microphone disconnected. Reconnect it and retry.");
-    };
-    await this.context.audioWorklet.addModule("/audio/pcm-capture.js");
-    if (this.ended) return;
-    const ctx = this.context;
-    const resampler = new Pcm16Stream(ctx.sampleRate);
-    this.source = ctx.createMediaStreamSource(stream);
-    this.worklet = new AudioWorkletNode(ctx, "skillnex-pcm-capture");
-    this.silent = ctx.createGain(); this.silent.gain.value = 0;
-    this.source.connect(this.worklet).connect(this.silent).connect(ctx.destination);
-    this.worklet.port.onmessage = event => {
-      if (this.ended || this.micMuted || !(event.data.samples instanceof Float32Array)) return;
-      const samples: Float32Array = event.data.samples;
-      let energy = 0;
-      for (const value of samples) energy += value * value;
-      this.events.samples(resampler.push(samples), Math.sqrt(energy / samples.length), samples.length / ctx.sampleRate);
-    };
-    this.gain = ctx.createGain();
-    this.analyser = ctx.createAnalyser(); this.analyser.fftSize = 512;
-    this.gain.connect(this.analyser).connect(ctx.destination);
-    const waveform = new Float32Array(512);
-    const animate = () => {
+    // Capture at the device's native rate; Pcm16Stream converts the transport to 16 kHz.
+    this.context = new AudioContext({ latencyHint: "interactive" });
+    try {
+      await this.context.resume();
       if (this.ended) return;
-      this.analyser!.getFloatTimeDomainData(waveform);
-      this.events.mouth(this.outputMuted || !this.sources.size ? 0 : audioMouthOpening(waveform));
-      this.frame = requestAnimationFrame(animate);
-    };
-    animate();
-    ctx.onstatechange = () => {
-      if (!this.ended && ctx.state === "suspended") this.events.error("Audio was paused by the browser. Retry to resume voice.");
-    };
+      const constraints = { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 };
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({audio: {
+          ...constraints, ...(deviceId ? {deviceId: {exact: deviceId}} : {}),
+        }, video:false});
+      } catch (error) {
+        if (this.ended) return;
+        // A saved headset ID can disappear after unplugging it or resetting permissions.
+        // Permission and device-busy failures must never trigger another access request.
+        if (!deviceId || !(error instanceof Error) || !["NotFoundError", "OverconstrainedError"].includes(error.name)) throw error;
+        stream = await navigator.mediaDevices.getUserMedia({audio:constraints, video:false});
+      }
+      if (this.ended) { stream.getTracks().forEach(t => t.stop()); return; }
+      this.stream = stream;
+      for (const track of stream.getAudioTracks()) track.onended = () => {
+        if (!this.ended) this.events.error("Microphone disconnected. Reconnect it and retry.");
+      };
+      if (!this.context.audioWorklet) throw new Error("This browser cannot capture live audio. Update your browser or continue with text.");
+      try { await this.context.audioWorklet.addModule("/audio/pcm-capture.js"); }
+      catch { throw new Error("The microphone audio module could not load. Refresh the page and retry, or continue with text."); }
+      if (this.ended) return;
+      const ctx = this.context;
+      const resampler = new Pcm16Stream(ctx.sampleRate);
+      this.source = ctx.createMediaStreamSource(stream);
+      this.worklet = new AudioWorkletNode(ctx, "skillnex-pcm-capture");
+      this.worklet.onprocessorerror = () => {
+        if (!this.ended) this.events.error("Microphone audio capture stopped. Retry voice or continue with text.");
+      };
+      this.silent = ctx.createGain(); this.silent.gain.value = 0;
+      this.source.connect(this.worklet).connect(this.silent).connect(ctx.destination);
+      this.worklet.port.onmessage = event => {
+        if (this.ended || this.micMuted || !(event.data.samples instanceof Float32Array) || !event.data.samples.length) return;
+        const samples: Float32Array = event.data.samples;
+        let energy = 0;
+        for (const value of samples) energy += value * value;
+        this.events.samples(resampler.push(samples), Math.sqrt(energy / samples.length), samples.length / ctx.sampleRate);
+      };
+      this.gain = ctx.createGain();
+      this.analyser = ctx.createAnalyser(); this.analyser.fftSize = 512;
+      this.gain.connect(this.analyser).connect(ctx.destination);
+      const waveform = new Float32Array(512);
+      const animate = () => {
+        if (this.ended) return;
+        this.analyser!.getFloatTimeDomainData(waveform);
+        this.events.mouth(this.outputMuted || !this.sources.size ? 0 : audioMouthOpening(waveform));
+        this.frame = requestAnimationFrame(animate);
+      };
+      animate();
+      ctx.onstatechange = () => {
+        if (!this.ended && ctx.state === "suspended") this.events.error("Audio was paused by the browser. Retry to resume voice.");
+      };
+      if (ctx.state !== "running") throw new Error("Audio capture is paused by the browser. Retry to resume voice.");
+    } catch (error) {
+      if (this.ended) return;
+      await this.close();
+      throw microphoneError(error);
+    }
   }
 
   play(base64: string, mime = "audio/pcm;rate=24000") {
@@ -155,7 +192,10 @@ export class LiveInterviewAudio {
     if (this.ended) return this.closing;
     this.ended = true; cancelAnimationFrame(this.frame); this.stopPlayback();
     this.stream?.getTracks().forEach(track => { track.onended = null; track.stop(); });
-    if (this.worklet) { this.worklet.port.onmessage = null; this.worklet.port.postMessage("stop"); this.worklet.disconnect(); }
+    if (this.worklet) {
+      this.worklet.onprocessorerror = null; this.worklet.port.onmessage = null;
+      this.worklet.port.postMessage("stop"); this.worklet.port.close(); this.worklet.disconnect();
+    }
     this.source?.disconnect(); this.silent?.disconnect(); this.gain?.disconnect(); this.analyser?.disconnect();
     if (this.context) { this.context.onstatechange = null; this.closing = this.context.close().catch(() => {}); }
     return this.closing;

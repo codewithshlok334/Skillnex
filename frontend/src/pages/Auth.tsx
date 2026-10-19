@@ -56,7 +56,7 @@ function AuthForm({ mode }: { mode: AuthMode }) {
   }, [mode, config.data?.demo]);
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (requestPending.current || mode === 'demo') return;
+    if (requestPending.current || mode === 'demo' || (mode === 'forgot' && !config.data?.passwordResetAvailable)) return;
     requestPending.current = true;
     setBusy(true);
     setError(null);
@@ -127,7 +127,9 @@ function AuthForm({ mode }: { mode: AuthMode }) {
             {mode === 'signup'
               ? 'Start free. Build at your own pace.'
               : mode === 'forgot'
-                ? 'We’ll send you a link to reset your password.'
+                ? config.data?.passwordResetAvailable
+                  ? config.data.demo ? 'Create a password-reset link for this local demo.' : 'We’ll send you a link to reset your password.'
+                  : 'Check whether password recovery is available for this site.'
                 : mode === 'reset'
                   ? 'Choose a new password with at least 10 characters.'
                   : 'Your goals, your growth, your workspace.'}
@@ -157,6 +159,17 @@ function AuthForm({ mode }: { mode: AuthMode }) {
                 <Link to="/login">Back to sign in</Link>
               </div>
             )
+          ) : mode === 'forgot' && !config.data?.passwordResetAvailable ? (
+            <div className="stack">
+              {config.isLoading ? (
+                <Loading text="Checking password recovery…" />
+              ) : config.error ? (
+                <ErrorState error={config.error} retry={() => { void config.refetch(); }} />
+              ) : (
+                <p role="status">Password reset is unavailable because email delivery has not been set up. Please contact the site administrator.</p>
+              )}
+              <Link to="/login">Back to sign in</Link>
+            </div>
           ) : (
             <form onSubmit={submit} className="stack">
               {mode === 'signup' && (

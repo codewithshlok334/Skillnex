@@ -33,13 +33,22 @@ import {
 import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
 import { date, initials } from '../utils/cn';
+import { syncCommunitySearch } from '../utils/communitySearch';
 export function Community() {
   const [params, setParams] = useSearchParams();
-  const [search, setSearch] = useState(params.get('q') || ''),
-    [category, setCategory] = useState(''),
+  const query = params.get('q') || '';
+  const [searchState, setSearchState] = useState(() => syncCommunitySearch(null, query));
+  const currentSearch = syncCommunitySearch(searchState, query);
+  if (currentSearch !== searchState) setSearchState(currentSearch);
+  const { search, page } = currentSearch;
+  const setSearch = (search: string) => setSearchState(current => ({ ...syncCommunitySearch(current, query), search }));
+  const setPage = (value: number | ((page: number) => number)) => setSearchState(current => {
+    const next = syncCommunitySearch(current, query);
+    return { ...next, page: typeof value === 'function' ? value(next.page) : value };
+  });
+  const [category, setCategory] = useState(''),
     [sort, setSort] = useState('recent'),
     [bookmarked, setBookmarked] = useState(false),
-    [page, setPage] = useState(0),
     [open, setOpen] = useState(false),
     [title, setTitle] = useState(''),
     [original, setOriginal] = useState(''),
@@ -56,12 +65,12 @@ export function Community() {
     queryFn: () => api<Data[]>('/community/categories'),
   });
   const q = useQuery({
-    queryKey: ['questions', params.get('q'), category, sort, page, bookmarked],
+    queryKey: ['questions', query, category, sort, page, bookmarked],
     queryFn: () =>
       api<Data>(
         '/community/questions?' +
           new URLSearchParams({
-            q: params.get('q') || '',
+            q: query,
             category,
             sort,
             page: String(page),

@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
-import { LiveInterviewSession } from "./liveInterviewSession";
+import { LiveInterviewSession, liveConnectionError } from "./liveInterviewSession";
 import type { LiveSnapshot } from "./liveInterviewSession";
 import type { Data } from "../types";
 import { api } from "../api/client";
@@ -79,10 +79,43 @@ describe("Live interview lifecycle", () => {
     await flush(); expect(snapshot.state).toBe("ERROR"); expect(snapshot.input).toBe("My answer");
     expect(ws.closed).toBe(true); expect(audio.close).toHaveBeenCalledTimes(1);
   });
-  it("fails a silent mic before opening any socket", async () => {
+  it("connects a working but silent microphone so the interviewer can ask first", async () => {
     await session.start(); callbacks.samples(new Int16Array(1024), 0, .064);
+    await flush();
+    const ws = Socket.all.at(-1)!; ws.onopen(); ws.message({setupComplete:{}});
     await vi.advanceTimersByTimeAsync(12001);
-    expect(snapshot.state).toBe("ERROR"); expect(Socket.all).toHaveLength(0); expect(audio.close).toHaveBeenCalled();
+    expect(snapshot.state).toBe("LISTENING"); expect(Socket.all).toHaveLength(1);
+    expect(ws.sent.some(m => m.clientContent)).toBe(true);
+    expect(audio.close).not.toHaveBeenCalled();
+  });
+  it("reports a device with no capture frames without contacting Gemini", async () => {
+    await session.start(); await vi.advanceTimersByTimeAsync(12001);
+    expect(snapshot.state).toBe("ERROR"); expect(snapshot.detail).toContain("not sending audio");
+    expect(Socket.all).toHaveLength(0); expect(audio.close).toHaveBeenCalled();
+  });
+  it("settles Start after a permission timeout and ignores a late microphone grant", async () => {
+    let grant!: () => void;
+    audio.open.mockImplementation(() => new Promise<void>(resolve => {grant = resolve;}));
+    let settled = false;
+    const pending = session.start().then(() => {settled = true;});
+    await vi.advanceTimersByTimeAsync(30001); await pending;
+    expect(settled).toBe(true); expect(snapshot.state).toBe("ERROR");
+    grant(); callbacks.samples(new Int16Array(1024), .04, .3); await flush();
+    expect(snapshot.state).toBe("ERROR"); expect(Socket.all).toHaveLength(0);
+  });
+  it("does not install a stale microphone timer if frames arrived during open", async () => {
+    audio.open.mockImplementation(async () => { callbacks.samples(new Int16Array(1024), 0, .064); });
+    await session.start(); await flush();
+    const ws = Socket.all.at(-1)!; ws.onopen(); ws.message({setupComplete:{}});
+    await vi.advanceTimersByTimeAsync(12001);
+    expect(snapshot.state).toBe("LISTENING");
+  });
+  it("gives an actionable quota error without echoing provider response data", async () => {
+    const ws = await connect();
+    ws.message({error:{code:429, status:"RESOURCE_EXHAUSTED", message:"Quota exhausted; sensitive-request-value"}});
+    expect(snapshot.state).toBe("ERROR"); expect(snapshot.detail).toContain("usage limit");
+    expect(snapshot.detail).not.toContain("sensitive-request-value"); expect(ws.closed).toBe(true);
+    expect(liveConnectionError(1008, "Token expired: secret-token-value")).toContain("fresh session");
   });
   it("uses actual playback completion when the provider emits generationComplete without turnComplete", async () => {
     const ws = await connect();
