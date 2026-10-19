@@ -2,6 +2,7 @@ package com.careerx.codelab;
 
 import com.careerx.repository.Store;
 import jakarta.annotation.PreDestroy;
+import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
 import org.springframework.http.HttpStatus;
@@ -46,7 +47,29 @@ public class CodeLabService {
     var rows=db.list("SELECT q.id,q.slug,q.title,q.topic,q.difficulty,"+solved+" AS solved FROM code_questions q"+where+" ORDER BY q.id LIMIT ? OFFSET ?",listArgs.toArray());
     return Map.of("questions",rows,"total",total,"page",page,"pageSize",12,
       "topics",db.list("SELECT DISTINCT topic FROM code_questions ORDER BY topic").stream().map(x -> x.get("topic")).toList(),
-      "progress",progress(uid));
+      "progress",progress(uid),"pendingSubmissions",pendingSubmissions(uid));
+  }
+  private boolean pendingSubmissions(String uid) {
+    return db.exists("SELECT 1 FROM code_submissions WHERE user_id=? AND status IN ('QUEUED','RUNNING')",uid);
+  }
+  public Object activity(String uid,Integer requestedYear,String timeZone) {
+    final ZoneId zone;
+    try { zone=ZoneId.of(timeZone); }
+    catch(DateTimeException e) { throw bad("Choose a valid time zone."); }
+    LocalDate today=LocalDate.now(zone);
+    int year=requestedYear==null?today.getYear():requestedYear;
+    if(year<2000 || year>today.getYear()) throw bad("Choose a year between 2000 and the current year.");
+    // Existing TIMESTAMP columns hold UTC wall times on the server. Interpret the
+    // wall time explicitly rather than treating JDBC's JVM-local instant as UTC.
+    var solvedDates=db.list("SELECT MIN(COALESCE(finished_at,created_at)) AS first_solved FROM code_submissions WHERE user_id=? AND mode='SUBMIT' AND status='ACCEPTED' GROUP BY question_id",uid).stream()
+      .map(row -> ((java.sql.Timestamp)row.get("first_solved")).toLocalDateTime().atOffset(ZoneOffset.UTC).atZoneSameInstant(zone).toLocalDate()).toList();
+    Map<LocalDate,Integer> counts=new TreeMap<>();
+    for(LocalDate day:solvedDates) if(day.getYear()==year && !day.isAfter(today)) counts.merge(day,1,Integer::sum);
+    return Map.of("year",year,"timeZone",zone.getId(),"today",today.toString(),
+      "firstYear",solvedDates.stream().mapToInt(LocalDate::getYear).min().orElse(today.getYear()),
+      "totalSolved",solvedDates.size(),"solvedThisYear",counts.values().stream().mapToInt(Integer::intValue).sum(),
+      "activeDays",counts.size(),"pendingSubmissions",pendingSubmissions(uid),
+      "days",counts.entrySet().stream().map(e -> Map.of("date",e.getKey().toString(),"count",e.getValue())).toList());
   }
   public Object progress(String uid) {
     return db.one("SELECT COUNT(*) AS total, SUM(CASE WHEN EXISTS (SELECT 1 FROM code_submissions s WHERE s.question_id=q.id AND s.user_id=? AND s.mode='SUBMIT' AND s.status='ACCEPTED') THEN 1 ELSE 0 END) AS solved FROM code_questions q",uid);

@@ -24,7 +24,7 @@ const languages: { id: Language; name: string; file: string }[] = [
 ];
 const extensions = { java: [java()], cpp: [cpp()], python: [python()] };
 type Question = { id: number; slug: string; title: string; topic: string; difficulty: string; solved: boolean };
-type Catalog = { questions: Question[]; total: number; page: number; pageSize: number; topics: string[]; progress: { total: number; solved: number } };
+type Catalog = { questions: Question[]; total: number; page: number; pageSize: number; topics: string[]; pendingSubmissions: boolean; progress: { total: number; solved: number } };
 type Runner = { configured: boolean; destination: string; languages: Language[] };
 type Detail = Question & {
   statement: { description: string; inputFormat: string; outputFormat: string; constraints: string[] };
@@ -38,6 +38,7 @@ const verdict = (status: string, mode?: string) => status === 'ACCEPTED' ? mode 
 const difficultyClass = (value: string) => 'cl-difficulty ' + value.toLowerCase();
 
 export function CodeLab() {
+  const { user } = useSession();
   const { preferences } = useEditorPreferences();
   const [params, setParams] = useSearchParams();
   const search = params.get('search') || '', topic = params.get('topic') || '', difficulty = params.get('difficulty') || '', state = params.get('state') || '';
@@ -55,13 +56,14 @@ export function CodeLab() {
   }, [searchDraft, search, setParams]);
   function filter(key: string, value: string) { const next = new URLSearchParams(params); value ? next.set(key, value) : next.delete(key); next.delete('page'); setParams(next); }
   const query = new URLSearchParams({ search, topic, difficulty, state, page: String(page) });
-  const bank = useQuery({ queryKey: ['codelab', query.toString()], queryFn: () => api<Catalog>('/codelab/questions?' + query) });
+  const bank = useQuery({ queryKey: ['codelab', user.id, query.toString()], queryFn: () => api<Catalog>('/codelab/questions?' + query),
+    refetchOnMount: 'always', refetchOnWindowFocus: true, refetchInterval: query => query.state.data?.pendingSubmissions ? 2000 : false });
   const runner = useQuery({ queryKey: ['codelab-runner'], queryFn: () => api<Runner>('/codelab/status'), refetchInterval: 10000 });
   const progress = bank.data?.progress;
   return <div className="codelab cl-library">
     <header className="cl-hero">
       <div><span className="cl-kicker"><Code2 size={16} /> SKILLNEX CODELAB</span><h1>A little practice.<br /><em>A sharper mind.</em></h1><p>Choose a problem. Try an approach. Make it work.</p><div className="cl-language-chips">{languages.map(l => <span key={l.id}>{l.name}</span>)}</div></div>
-      <div className="cl-progress-card"><span className="cl-kicker">YOUR PRACTICE LOG</span><div className="cl-progress-number">{progress?.solved ?? '—'}<span> / {progress?.total ?? 50}</span></div><p>problems solved</p><progress aria-label="Solved problems" value={progress?.solved || 0} max={progress?.total || 50} /><small>One accepted submission. One step forward.</small></div>
+      <div className="cl-progress-card"><span className="cl-kicker">YOUR PRACTICE LOG</span><div className="cl-progress-number" aria-live="polite">{progress?.solved ?? '—'}<span> / {progress?.total ?? 50}</span></div><p>problems solved</p><progress aria-label="Solved problems" value={progress?.solved || 0} max={progress?.total || 50} /><small>{bank.data?.pendingSubmissions ? 'Checking your submission… progress updates automatically.' : 'Solve a problem by passing every Submit test.'}</small><Link className="cl-activity-link" to="/app/profile">View coding activity<ArrowRight size={14} /></Link></div>
     </header>
     <div className="cl-section-head"><div><h2>The problem set</h2><p>50 original DSA challenges, from first principles to deeper patterns.</p></div><span className="cl-library-note"><BookOpen size={16} /> Hints & solutions included</span></div>
     {runner.data && !runner.data.configured && <div className="cl-notice"><Terminal size={18} /><p>Code execution is not connected. The site owner needs to connect a code sandbox to enable Run and Submit. You can still explore questions and save your drafts.</p></div>}
@@ -74,7 +76,7 @@ export function CodeLab() {
     {(search || topic || difficulty || state) && <div className="cl-active-filters" aria-label="Active filters"><span>Matching all filters:</span>{[['search', search], ['topic', topic], ['difficulty', difficulty], ['state', state]].filter(([, value]) => value).map(([key, value]) => <button key={key} onClick={() => filter(key, '')} aria-label={`Clear ${key} filter`}>{key === 'state' ? value === 'todo' ? 'To solve' : 'Solved' : value}<X size={12} /></button>)}<button onClick={() => setParams({})}>Clear all</button></div>}
     {bank.isLoading ? <Loading text="Opening the problem set…" /> : bank.error ? <ErrorState error={bank.error} retry={() => bank.refetch()} /> : <>
       <div className="cl-problem-list"><div className="cl-list-labels"><span>PROBLEM</span><span>TOPIC</span><span>LEVEL</span><span /></div>
-        {bank.data?.questions.map(q => <Link key={q.id} className="cl-problem-row" to={`/app/codelab/${q.id}?language=${preferences.language}`}><span className="cl-problem-title"><span className={'cl-problem-marker ' + (q.solved ? 'solved' : '')}>{q.solved ? <Check size={17} /> : String(q.id).padStart(2, '0')}</span><strong>{q.title}</strong></span><span className="cl-topic">{q.topic}</span><span className={difficultyClass(q.difficulty)}>{q.difficulty}</span><ArrowRight size={17} /></Link>)}
+        {bank.data?.questions.map(q => <Link key={q.id} className="cl-problem-row" to={`/app/codelab/${q.id}?language=${preferences.language}`}><span className="cl-problem-title"><span className="cl-problem-marker">{String(q.id).padStart(2, '0')}</span><strong>{q.title}</strong>{q.solved && <span className="cl-solved-tick" role="img" aria-label="Solved" title="Solved · all Submit tests passed"><Check size={13} strokeWidth={3} /></span>}</span><span className="cl-topic">{q.topic}</span><span className={difficultyClass(q.difficulty)}>{q.difficulty}</span><ArrowRight size={17} /></Link>)}
         {!bank.data?.questions.length && <div className="cl-empty"><Search size={28} /><h3>No matching problems</h3><p>Try a different topic or clear your filters.</p><Button variant="secondary" onClick={() => setParams({})}>Clear filters</Button></div>}
       </div>
       <footer className="cl-pagination"><span>{bank.data?.total || 0} matching problems</span><div><Button variant="secondary" size="sm" disabled={page === 0} onClick={() => { const next = new URLSearchParams(params); next.set('page', String(page - 1)); setParams(next); }}><ChevronLeft size={16} />Previous</Button><span>Page {page + 1}</span><Button variant="secondary" size="sm" disabled={(page + 1) * 12 >= (bank.data?.total || 0)} onClick={() => { const next = new URLSearchParams(params); next.set('page', String(page + 1)); setParams(next); }}>Next<ChevronRight size={16} /></Button></div></footer>
@@ -126,20 +128,21 @@ function ProblemWorkspace({ question: q, language }: { question: Detail; languag
   const runner = useQuery({ queryKey: ['codelab-runner'], queryFn: () => api<Runner>('/codelab/status'), refetchInterval: 10000 });
   const hints = useQuery({ queryKey: ['codelab-hints', q.id], queryFn: () => api<string[]>(`/codelab/questions/${q.id}/hints`), enabled: tab === 'hints' });
   const solution = useQuery({ queryKey: ['codelab-solution', q.id, language], queryFn: () => api<{ code: string; approach: string; complexity: string }>(`/codelab/questions/${q.id}/solution?language=${language}`), enabled: tab === 'solution' });
-  const history = useQuery({ queryKey: ['codelab-history', q.id], queryFn: () => api<Submission[]>(`/codelab/questions/${q.id}/submissions`) });
-  const run = useQuery({ queryKey: ['codelab-submission', submissionId], queryFn: () => api<Submission>('/codelab/submissions/' + submissionId), enabled: !!submissionId,
+  const history = useQuery({ queryKey: ['codelab-history', q.id, user.id], queryFn: () => api<Submission[]>(`/codelab/questions/${q.id}/submissions`) });
+  const run = useQuery({ queryKey: ['codelab-submission', submissionId, user.id], queryFn: () => api<Submission>('/codelab/submissions/' + submissionId), enabled: !!submissionId,
     refetchInterval: query => query.state.status === 'error' ? false : !query.state.data || active(query.state.data.status) ? 1000 : false });
   const judging = sending || (!!submissionId && !run.error && (!run.data || active(run.data.status)));
   useEffect(() => {
     if (run.data && !active(run.data.status) && lastCompleted.current !== run.data.id) {
       lastCompleted.current = run.data.id;
-      void cache.invalidateQueries({ queryKey: ['codelab'] });
-      void cache.invalidateQueries({ queryKey: ['codelab-history', q.id] });
+      void cache.invalidateQueries({ queryKey: ['codelab', user.id] });
+      void cache.invalidateQueries({ queryKey: ['codelab-history', q.id, user.id] });
+      void cache.invalidateQueries({ queryKey: ['codelab-activity', user.id] });
       if (run.data.mode === 'SUBMIT' && run.data.status === 'ACCEPTED') {
-        cache.setQueriesData<Detail>({ queryKey: ['codelab-question', q.id] }, old => old ? { ...old, solved: true } : old);
+        cache.setQueriesData<Detail>({ queryKey: ['codelab-question', q.id], predicate: query => query.queryKey[3] === user.id }, old => old ? { ...old, solved: true } : old);
       }
     }
-  }, [run.data, cache, q.id]);
+  }, [run.data, cache, q.id, user.id]);
   useEffect(() => {
     const leave = (event: BeforeUnloadEvent) => { if (dirty) event.preventDefault(); };
     window.addEventListener('beforeunload', leave); return () => window.removeEventListener('beforeunload', leave);

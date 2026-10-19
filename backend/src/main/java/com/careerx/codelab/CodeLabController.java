@@ -22,6 +22,10 @@ public class CodeLabController {
   @ResponseStatus(org.springframework.http.HttpStatus.BAD_REQUEST)
   public Object invalidFilter() { return Map.of("message","Check the CodeLab filters or request fields."); }
   @GetMapping("/status") public Object status() { return service.runnerStatus(); }
+  @GetMapping("/activity") public Object activity(Principal user,
+    @RequestParam(required=false) Integer year,@RequestParam(defaultValue="UTC") @Size(max=80) String timeZone) {
+    return service.activity(user.getName(),year,timeZone);
+  }
   @GetMapping("/questions") public Object questions(Principal user,
     @RequestParam(defaultValue="") @Size(max=120) String search,@RequestParam(defaultValue="") @Size(max=50) String topic,
     @RequestParam(defaultValue="") @Pattern(regexp="|Easy|Medium|Hard") String difficulty,

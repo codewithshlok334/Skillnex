@@ -1,4 +1,6 @@
 /* CodeLab has its own workspace, without the main application sidebar. */
+.cl-solved-tick { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 21px; height: 21px; margin-left: -8px; border-radius: 50%; background: rgba(54,169,135,.14); color: #36a987; }
+.cl-activity-link { display: inline-flex; align-items: center; gap: 6px; grid-column: 1/-1; margin-top: 15px; color: var(--accent); font-size: 12px; text-decoration: none; }
 :root .codelab-section > .sidebar,
 :root .codelab-section > .sidebar-backdrop { display: none; }
 :root .codelab-section .app-body { margin-left: 0; width: 100%; }

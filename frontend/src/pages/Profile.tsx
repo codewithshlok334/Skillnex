@@ -7,6 +7,7 @@ import { useSession } from '../hooks/useSession';
 import { PageTitle, Card, SectionTitle, ErrorState } from '../components/Common';
 import { Button } from '../components/ui/button';
 import { initials } from '../utils/cn';
+import { CodingActivity } from '../components/CodingActivity';
 export function Profile() {
   const { user } = useSession(),
     client = useQueryClient();
@@ -36,6 +37,7 @@ export function Profile() {
         title="A little more about your story."
         description="Keep your profile current for advice that meets you where you are."
       />
+      <CodingActivity key={user.id} />
       <div className="profile-grid">
         <div className="stack">
           <Card className="profile-summary">

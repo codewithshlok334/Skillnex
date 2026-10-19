@@ -81,6 +81,42 @@ class CodeLabIntegrationTest {
   assertEquals(id,body(submit(a,"java","SUBMIT","source",key)).path("id").asText());assertEquals(1,db.count("SELECT COUNT(*) FROM code_submissions WHERE user_id=?",a.id()));
   submit(a,"java","SUBMIT","changed",key).andExpect(status().isBadRequest());
  }
+ void recorded(Account a,int question,String language,String mode,String status,String finished) {
+  db.exec("INSERT INTO code_submissions(id,user_id,question_id,language_id,request_key,mode,source_code,status,passed,total,created_at,finished_at) VALUES(?,?,?,?,?,?,?,?,?,?,CAST(? AS TIMESTAMP),CAST(? AS TIMESTAMP))",
+   db.id(),a.id(),question,language,db.id(),mode,"private code",status,status.equals("ACCEPTED")?6:0,6,finished,finished);
+ }
+ @Test void activityCountsOnlyFirstAcceptedFullSubmissionPerProblemAndIsPrivate()throws Exception {
+  Account owner=account(),other=account();
+  recorded(owner,1,"python","SUBMIT","ACCEPTED","2024-02-29 23:30:00");
+  recorded(owner,1,"java","SUBMIT","ACCEPTED","2024-03-10 10:00:00");
+  recorded(owner,2,"cpp","SUBMIT","ACCEPTED","2024-03-01 01:00:00");
+  recorded(owner,3,"python","RUN","ACCEPTED","2024-03-01 01:00:00");
+  recorded(owner,4,"java","SUBMIT","WRONG_ANSWER","2024-03-01 01:00:00");
+  recorded(owner,5,"python","SUBMIT","COMPILATION_ERROR","2024-03-01 01:00:00");
+  recorded(owner,6,"python","SUBMIT","RUNNER_ERROR","2024-03-01 01:00:00");
+  recorded(other,7,"python","SUBMIT","ACCEPTED","2024-03-01 01:00:00");
+  JsonNode india=body(getAs(owner,"/activity?year=2024&timeZone=Asia%2FKolkata").andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store")));
+  assertEquals(2,india.path("totalSolved").asInt());assertEquals(2,india.path("solvedThisYear").asInt());assertEquals(1,india.path("activeDays").asInt());
+  assertEquals(1,india.path("days").size());assertEquals("2024-03-01",india.path("days").get(0).path("date").asText());assertEquals(2,india.path("days").get(0).path("count").asInt());
+  assertFalse(india.toString().contains("private code"));
+  JsonNode utc=body(getAs(owner,"/activity?year=2024&timeZone=UTC"));assertEquals(2,utc.path("activeDays").asInt());assertEquals("2024-02-29",utc.path("days").get(0).path("date").asText());
+  JsonNode previous=body(getAs(owner,"/activity?year=2023"));assertEquals(2,previous.path("totalSolved").asInt());assertEquals(0,previous.path("solvedThisYear").asInt());assertEquals(0,previous.path("days").size());
+  assertEquals(1,body(getAs(other,"/activity?year=2024")).path("totalSolved").asInt());
+  JsonNode catalog=body(getAs(owner,"/questions?state=solved"));assertEquals(2,catalog.path("total").asInt());assertEquals(2,catalog.path("progress").path("solved").asInt());
+  assertTrue(catalog.path("questions").get(0).path("solved").asBoolean());
+ }
+ @Test void activityHandlesEmptyHistoryCompletionTimeAndYearBoundaries()throws Exception {
+  Account a=account();JsonNode empty=body(getAs(a,"/activity"));assertEquals(0,empty.path("totalSolved").asInt());assertEquals(0,empty.path("days").size());
+  recorded(a,1,"python","SUBMIT","ACCEPTED","2023-12-31 23:59:00");
+  db.exec("UPDATE code_submissions SET finished_at=CAST(? AS TIMESTAMP) WHERE user_id=?","2024-01-01 00:01:00",a.id());
+  assertEquals(0,body(getAs(a,"/activity?year=2023&timeZone=UTC")).path("solvedThisYear").asInt());
+  assertEquals("2024-01-01",body(getAs(a,"/activity?year=2024&timeZone=UTC")).path("days").get(0).path("date").asText());
+  recorded(a,2,"python","SUBMIT","QUEUED","2024-01-02 00:00:00");
+  assertTrue(body(getAs(a,"/activity")).path("pendingSubmissions").asBoolean());assertTrue(body(getAs(a,"/questions")).path("pendingSubmissions").asBoolean());
+  assertEquals(1,body(getAs(a,"/activity")).path("totalSolved").asInt());
+  getAs(a,"/activity?year=1999").andExpect(status().isBadRequest());getAs(a,"/activity?year=9999").andExpect(status().isBadRequest());getAs(a,"/activity?timeZone=unknown").andExpect(status().isBadRequest());
+  mvc.perform(get("/api/codelab/activity")).andExpect(status().isUnauthorized());
+ }
  @Test void invalidLanguageAndOfflineRunnerNeverExecuteOrMarkSolved()throws Exception{
   Account a=account();submit(a,"javascript","SUBMIT","code",db.id()).andExpect(status().isBadRequest());
   when(runner.configured()).thenReturn(false);submit(a,"python","RUN","code",db.id()).andExpect(status().isServiceUnavailable());verify(runner,never()).execute(anyString(),anyString(),anyList());
