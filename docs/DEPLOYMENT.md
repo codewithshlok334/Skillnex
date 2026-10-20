@@ -78,3 +78,34 @@ These require your own configured services and were not exercised with real exte
 - Real-browser microphone permission and speech recognition.
 - Container build/run on the deployment host and TLS/proxy configuration.
 - Load testing at your expected concurrency, retention review, and vulnerability scanning.
+# Peer Practice connectivity
+
+The existing authenticated API handles private two-person rooms and signaling.
+Flyway V10 creates the room, membership, signaling, notes, feedback and report
+tables. Existing users and features are preserved. HTTPS is required for real
+microphone/camera access (localhost is allowed for development).
+
+`PEER_STUN_URL` defaults to Google's public STUN service. Direct WebRTC calls can
+work without a relay, but restrictive mobile, corporate or NAT networks require
+a TURN server. Configure `PEER_TURN_URLS` (comma-separated turn/turns URLs) and
+`PEER_TURN_SECRET` with an existing coturn-compatible REST shared secret. The
+backend generates short-lived credentials; the shared secret stays server-side.
+No TURN service is provisioned automatically. Render's web service is not a TURN
+relay. Keep these credentials out of source control.
+
+Calls have two participants, expire after two active hours, and use database
+polling for signaling. This is a small-scale practice room, not group conferencing.
+Camera and microphone start off. Leaving the page stops local tracks. End the
+session before navigating away to flush any final transcript segment.
+
+Transcription uses the existing Gemini audio capability and only starts after
+each user opts in. Audio is processed in short segments and is not stored by
+SkillNex; transcript text is saved and visible to both participants. Written notes
+and each user's AI report remain private. The AI provider still processes any
+submitted audio/text under its own data policy. If transcription is unavailable,
+users can save written questions/answers for the final analysis.
+
+An analysis needs at least 80 characters of the requesting user's saved content.
+It reviews up to 60,000 characters and reports its coverage. New evidence
+invalidates previous reports. Peer feedback and AI analysis are available only
+after the session ends. No AI assessment of appearance or personality is made.

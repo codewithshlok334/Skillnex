@@ -21,6 +21,7 @@ import { applyTheme, readTheme } from './utils/graphiteTheme';
 import './styles.css';
 const CodeLab = lazy(() => import('./pages/CodeLab').then(module => ({ default: module.CodeLab })));
 const CodeLabRoom = lazy(() => import('./pages/CodeLab').then(module => ({ default: module.CodeLabRoom })));
+const PeerPractice = lazy(() => import('./pages/PeerPractice').then(module => ({ default: module.PeerPractice })));
 applyTheme(readTheme());
 const client = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 15000, refetchOnWindowFocus: false } },
@@ -68,6 +69,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 <Route path="community" element={<Community />} />
                 <Route path="community/:id" element={<QuestionDetail />} />
                 <Route path="roadmap" element={<Roadmap />} />
+                <Route path="peer-practice" element={<Suspense fallback={<div role="status">Opening Peer Practice…</div>}><PeerPractice /></Suspense>} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="admin" element={<Admin />} />
                 <Route path="assistant" element={<Assistant />} />

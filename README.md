@@ -192,6 +192,16 @@ The persistence layer intentionally uses Spring JDBC and explicit schema relatio
 
 ## More documentation
 
+Peer Practice is available below Career roadmap. Create a private room, share its
+invite with one partner, and start a two-person interview. Cameras are optional;
+the account photo or initials appear when video is off. Written notes are private.
+Optional microphone transcription requires each participant's consent and the
+configured Gemini transcription provider. Analysis becomes available after the
+session ends and uses saved text; it does not assess video or invent scores.
+
+Career roadmap now includes 26 suggested goals, searchable by category. A custom
+goal is still supported.
+
 - [API reference](docs/API.md)
 - [Architecture and data model](docs/ARCHITECTURE.md)
 - [Production deployment](docs/DEPLOYMENT.md)

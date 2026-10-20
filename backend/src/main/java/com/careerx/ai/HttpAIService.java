@@ -284,6 +284,14 @@ public class HttpAIService implements AIService {
         text(n, "reply");
         if (n.path("reply").asText().length() > 12000) throw new IllegalArgumentException();
       }
+      case "PeerReviewPrompt" -> {
+        text(n, "summary"); text(n, "coverage");
+        strings(n, "strengths"); strings(n, "nextSteps"); array(n, "mistakes");
+        if (n.path("strengths").size()>8 || n.path("nextSteps").size()>8 || n.path("mistakes").size()>12) throw new IllegalArgumentException();
+        for (var mistake : n.path("mistakes")) {
+          text(mistake,"quote"); text(mistake,"issue"); text(mistake,"improvement");
+        }
+      }
       case "InterviewEvaluationPrompt" -> {
         text(n, "summary");
         array(n, "questionReviews");

@@ -33,6 +33,10 @@ app:
   origin: ${APP_ORIGIN:${RENDER_EXTERNAL_URL:http://localhost:5173}}
   jwt-secret: ${JWT_SECRET:}
   secure-cookie: ${SECURE_COOKIE:true}
+  peer:
+    stun-url: ${PEER_STUN_URL:stun:stun.l.google.com:19302}
+    turn-urls: ${PEER_TURN_URLS:}
+    turn-secret: ${PEER_TURN_SECRET:}
   codelab:
     provider: ${CODELAB_RUNNER:judge0}
     runner-url: ${CODELAB_RUNNER_URL:}

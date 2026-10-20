@@ -25,6 +25,7 @@ import {
   CheckCheck,
   Code2,
   ArrowLeft,
+  Video,
 } from 'lucide-react';
 import { api, post, ApiError } from '../api/client';
 import { SessionContext, useConfig } from '../hooks/useSession';
@@ -55,6 +56,7 @@ const nav = [
   { label: 'CodeLab', path: '/app/codelab', icon: Code2, badge: 'NEW' },
   { label: 'Community', path: '/app/community', icon: MessagesSquare },
   { label: 'Career roadmap', path: '/app/roadmap', icon: Route },
+  { label: 'Peer Practice', path: '/app/peer-practice', icon: Video, badge: 'NEW' },
 ];
 export function AppLayout() {
   const logoutPending = useRef(false);
@@ -119,6 +121,21 @@ export function AppLayout() {
     </Button>
   );
   useEffect(() => { setMobile(false); setSettings(false); }, [location.pathname]);
+  useEffect(() => {
+    const invite = new URLSearchParams(location.search).get('join');
+    if (location.pathname === '/app/peer-practice' && invite && /^[a-f\d-]{36}$/i.test(invite)) {
+      try { sessionStorage.setItem('skillnex-peer-invite', invite); } catch {}
+    }
+    if (me.data) {
+      try {
+        const pending = sessionStorage.getItem('skillnex-peer-invite');
+        if (pending && /^[a-f\d-]{36}$/i.test(pending)) {
+          sessionStorage.removeItem('skillnex-peer-invite');
+          if (location.pathname !== '/app/peer-practice') navigate('/app/peer-practice?join=' + pending, { replace: true });
+        }
+      } catch {}
+    }
+  }, [location.pathname, location.search, me.data, navigate]);
   useEffect(() => {
     function listener(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -327,7 +344,7 @@ export function AppLayout() {
               <span className="footer-separator">·</span>SkillNex © {new Date().getFullYear()}
             </span>
           </footer>
-          {!/^\/app\/interviews\/[^/]+\/?$/.test(location.pathname) && <AssistantWidget />}
+          {!/^\/app\/interviews\/[^/]+\/?$/.test(location.pathname) && location.pathname !== '/app/peer-practice' && <AssistantWidget />}
         </div>
       </div>
       <WorkspaceSettings open={settings} onOpenChange={setSettings} logout={logout} loggingOut={loggingOut} />

@@ -9,6 +9,7 @@ import { Loading, ErrorState, AILabel } from '../components/Common';
 import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
 import '../roadmap-explorer.css';
+import { roadmapTopics } from '../data/roadmapTopics';
 
 const activities = [
   { key: 'learn', label: 'Learn', icon: BookOpen, hint: 'Understand the foundations' },
@@ -34,6 +35,9 @@ export function Roadmap() {
   const progressRequests = useRef(new Set<string>());
   const [savingProgress, setSavingProgress] = useState<string[]>([]);
   const detail = useRef<HTMLElement>(null);
+  const [topicGroup, setTopicGroup] = useState('All');
+  const [topicSearch, setTopicSearch] = useState('');
+  const [browseTopics, setBrowseTopics] = useState(false);
 
   async function generate(e: React.FormEvent) {
     e.preventDefault();
@@ -107,6 +111,12 @@ export function Roadmap() {
           <Button onClick={newPlan}><Sparkles size={16} />{items.length ? 'New roadmap' : 'Find my path'}</Button>
         </div>
       </header>
+      <section className="rm-topics" aria-label="Career roadmap topics">
+        <div className="rm-topics-heading"><div><span className="rm-kicker">MORE DIRECTIONS TO EXPLORE</span><h2>Find a path that feels like you.</h2></div><button type="button" onClick={()=>setBrowseTopics(!browseTopics)} aria-expanded={browseTopics}>{browseTopics ? 'Show less' : `Browse all ${roadmapTopics.length} topics`} <ArrowRight size={14}/></button></div>
+        {browseTopics && <div className="rm-topic-filters"><input aria-label="Search roadmap topics" value={topicSearch} onChange={e=>setTopicSearch(e.target.value)} placeholder="Search a career or skill…"/><select aria-label="Topic category" value={topicGroup} onChange={e=>setTopicGroup(e.target.value)}>{['All',...new Set(roadmapTopics.map(t=>t.group))].map(g=><option key={g}>{g}</option>)}</select></div>}
+        <div className="rm-topic-options">{(browseTopics ? roadmapTopics.filter(t=>(topicGroup==='All'||t.group===topicGroup)&&t.title.toLowerCase().includes(topicSearch.toLowerCase())) : [roadmapTopics[0],roadmapTopics[8],roadmapTopics[12],roadmapTopics[13],roadmapTopics[18],roadmapTopics[21]]).map(t=><button type="button" key={t.title} onClick={()=>{setGoal(t.title);setError(null);setOpen(true);}}>{t.title}<ArrowRight size={13}/></button>)}</div>
+        {browseTopics && !roadmapTopics.some(t=>(topicGroup==='All'||t.group===topicGroup)&&t.title.toLowerCase().includes(topicSearch.toLowerCase())) && <p className="muted">No matching topic. You can enter your own goal with “{items.length ? 'New roadmap' : 'Find my path'}”.</p>}
+      </section>
       {q.isLoading ? <Loading /> : q.error ? <ErrorState error={q.error} retry={() => q.refetch()} /> : items.length ? <>
         <section className="rm-overview" aria-label="Your roadmap progress">
           <div className="rm-goal"><span className="rm-kicker">THE DESTINATION</span><h2>{q.data?.title}</h2><p>{q.data?.summary}</p><AILabel demo={config.demo && q.data?.summary?.startsWith('Demo roadmap')} /></div>
@@ -139,7 +149,7 @@ export function Roadmap() {
         <form className="stack" onSubmit={generate}>
           {!!error && <ErrorState error={error} />}
           <label>Career goal<input disabled={busy} list="roadmap-goals" value={goal} onChange={e => setGoal(e.target.value)} maxLength={200} placeholder="e.g. Software Engineer" required /></label>
-          <datalist id="roadmap-goals">{['Java Developer','Software Engineer','Data Analyst','Frontend Developer','AI Engineer'].map(g => <option key={g}>{g}</option>)}</datalist>
+          <datalist id="roadmap-goals">{roadmapTopics.map(t => <option key={t.title}>{t.title}</option>)}</datalist>
           <p className="muted">For a more relevant roadmap, keep your profile skills and resume up to date.</p>
           <Button disabled={busy} type="submit">{busy ? 'Mapping your next steps…' : 'Generate my roadmap'}<ArrowRight size={15} /></Button>
           {busy && <p role="status" className="muted">Your personal plan is being prepared. This can take a little time.</p>}
