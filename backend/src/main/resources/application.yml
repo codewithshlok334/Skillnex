@@ -37,6 +37,8 @@ app:
     stun-url: ${PEER_STUN_URL:stun:stun.l.google.com:19302}
     turn-urls: ${PEER_TURN_URLS:}
     turn-secret: ${PEER_TURN_SECRET:}
+    turn-username: ${PEER_TURN_USERNAME:}
+    turn-password: ${PEER_TURN_PASSWORD:}
   codelab:
     provider: ${CODELAB_RUNNER:judge0}
     runner-url: ${CODELAB_RUNNER_URL:}

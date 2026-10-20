@@ -28,13 +28,14 @@ public class PeerPracticeController {
   private final AIService ai;
   private final AIExecutor executor;
   private final RateLimit rate;
-  private final String turnUrls, turnSecret, stunUrl;
+  private final String turnUrls, turnSecret, turnUsername, turnPassword, stunUrl;
   private final Set<String> analysing = ConcurrentHashMap.newKeySet();
   public PeerPracticeController(PeerPracticeService rooms, Store db, AIService ai, AIExecutor executor, RateLimit rate,
       @Value("${app.peer.turn-urls:}") String turnUrls, @Value("${app.peer.turn-secret:}") String turnSecret,
+      @Value("${app.peer.turn-username:}") String turnUsername, @Value("${app.peer.turn-password:}") String turnPassword,
       @Value("${app.peer.stun-url:stun:stun.l.google.com:19302}") String stunUrl) {
     this.rooms=rooms; this.db=db; this.ai=ai; this.executor=executor; this.rate=rate;
-    this.turnUrls=turnUrls; this.turnSecret=turnSecret; this.stunUrl=stunUrl;
+    this.turnUrls=turnUrls; this.turnSecret=turnSecret; this.turnUsername=turnUsername; this.turnPassword=turnPassword; this.stunUrl=stunUrl;
   }
   public record Create(@NotNull @Size(max=120) String title) {}
   public record Client(@NotBlank @Pattern(regexp="[a-fA-F0-9-]{36}") String clientId) {}
@@ -49,14 +50,22 @@ public class PeerPracticeController {
   public Object config(Principal p) throws Exception {
     var servers = new ArrayList<Object>();
     if (!stunUrl.isBlank()) servers.add(Map.of("urls", stunUrl));
-    boolean relay = !turnUrls.isBlank() && !turnSecret.isBlank();
+    boolean sharedSecret = !turnSecret.isBlank();
+    boolean relay = !turnUrls.isBlank() && (sharedSecret || (!turnUsername.isBlank() && !turnPassword.isBlank()));
     if (relay) {
-      // coturn REST credentials expire; the long-lived shared secret never reaches the browser.
-      String username = (System.currentTimeMillis()/1000 + 3600) + ":" + p.getName();
-      Mac hmac = Mac.getInstance("HmacSHA1");
-      hmac.init(new SecretKeySpec(turnSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA1"));
-      servers.add(Map.of("urls", Arrays.stream(turnUrls.split(",")).map(String::strip).toList(), "username", username,
-        "credential", Base64.getEncoder().encodeToString(hmac.doFinal(username.getBytes(StandardCharsets.UTF_8)))));
+      if (!sharedSecret) {
+        // Managed TURN credentials must reach authenticated call clients, never a provider API key.
+        servers.add(Map.of("urls", Arrays.stream(turnUrls.split(",")).map(String::strip).filter(s -> !s.isBlank()).toList(),
+          "username", turnUsername, "credential", turnPassword));
+      } else {
+        // coturn REST credentials expire; the long-lived shared secret never reaches the browser.
+        // Covers the two-hour room limit plus setup time; no account identifier goes to the relay.
+        String username = (System.currentTimeMillis()/1000 + 10800) + ":" + UUID.randomUUID();
+        Mac hmac = Mac.getInstance("HmacSHA1");
+        hmac.init(new SecretKeySpec(turnSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA1"));
+        servers.add(Map.of("urls", Arrays.stream(turnUrls.split(",")).map(String::strip).toList(), "username", username,
+          "credential", Base64.getEncoder().encodeToString(hmac.doFinal(username.getBytes(StandardCharsets.UTF_8)))));
+      }
     }
     return Map.of("iceServers", servers, "relayAvailable", relay, "transcriptionAvailable", ai.audioTranscriptionAvailable(), "analysisAvailable", ai.available());
   }

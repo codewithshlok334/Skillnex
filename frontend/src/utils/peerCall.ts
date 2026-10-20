@@ -22,6 +22,7 @@ export class PeerCall {
   private audioSender?: RTCRtpSender;
   private videoSender?: RTCRtpSender;
   private offerStarted = false;
+  private connectionTimer?: ReturnType<typeof setTimeout>;
   private sendQueue = Promise.resolve();
   private room?: PeerRoomData;
   private local = new MediaStream();
@@ -51,13 +52,16 @@ export class PeerCall {
     finally { clearTimeout(timer); parent.removeEventListener('abort', abort); }
   }
   async start() {
+    const controller = this.controller;
     try {
+      this.config = await api<PeerConfig>('/peer/config', { signal: controller.signal });
+      if (this.disposed || controller !== this.controller) return;
       const r = await this.request<PeerRoomData>('connect', { clientId: this.clientId });
-      if (this.disposed) return;
+      if (this.disposed || controller !== this.controller) return;
       this.onRoom(r); this.room = r; this.consent = !!r.participants.find(p => p.id === this.uid)?.consent;
       this.emit({ connection: 'waiting', error: '' });
       await this.poll();
-    } catch (e) { if (!this.disposed) this.emit({ error: (e as Error).message, connection: 'failed' }); }
+    } catch (e) { if (!this.disposed && controller === this.controller) this.emit({ error: (e as Error).message, connection: 'failed' }); }
   }
   private async poll() {
     if (this.disposed) return;
@@ -67,9 +71,9 @@ export class PeerCall {
       if (this.disposed || controller !== this.controller) return;
       this.room = r; this.onRoom(r);
       if (r.status === 'COMPLETED') {
-        if (!this.ended) { this.ended = true; this.emit({ pending: this.uploads.size + (this.recorder ? 1 : 0) }); this.stopRecording(); this.stopTracks(); this.pc?.close(); this.emit({ connection: 'ended', mic: false, camera: false }); }
+        if (!this.ended) { this.ended = true; clearTimeout(this.connectionTimer); this.emit({ pending: this.uploads.size + (this.recorder ? 1 : 0) }); this.stopRecording(); this.stopTracks(); this.pc?.close(); this.emit({ connection: 'ended', mic: false, camera: false }); }
       } else {
-        if (r.epoch !== this.epoch) this.buildConnection(r);
+        if (r.epoch !== this.epoch) await this.buildConnection(r);
         const other = r.participants.find(p => p.id !== this.uid);
         if (other?.client_id && other.seen_ms > r.serverTime - 15000) {
           if (this.uid === r.host_id && !this.offerStarted) {
@@ -93,22 +97,53 @@ export class PeerCall {
       if (!this.disposed && controller === this.controller) this.timer = setTimeout(() => void this.poll(), this.ended ? 5000 : 1800);
     }
   }
-  private buildConnection(r: PeerRoomData) {
+  private async buildConnection(r: PeerRoomData) {
+    clearTimeout(this.connectionTimer);
     this.pc?.close(); this.epoch = r.epoch; this.cursor = 0; this.candidates = []; this.offerStarted = false;
     const pc = new RTCPeerConnection({ iceServers: this.config.iceServers }); this.pc = pc;
     const remote = new MediaStream();
     this.emit({ remote, connection: 'connecting', error: '' });
-    this.audioSender = pc.addTransceiver('audio', { direction: 'sendrecv' }).sender;
-    this.videoSender = pc.addTransceiver('video', { direction: 'sendrecv' }).sender;
-    void this.audioSender.replaceTrack(this.local.getAudioTracks()[0] || null);
-    void this.videoSender.replaceTrack(this.local.getVideoTracks()[0] || null);
-    pc.ontrack = e => { if (this.pc !== pc || this.disposed) return; remote.addTrack(e.track); this.emit({ remote: new MediaStream(remote.getTracks()) }); };
+    this.audioSender = undefined; this.videoSender = undefined;
+    // Only the offerer creates media sections. The answerer uses the offered
+    // transceivers, including when both devices were off when the offer arrived.
+    if (this.uid === r.host_id) {
+      pc.addTransceiver('audio', { direction: 'sendrecv', streams: [this.local] });
+      pc.addTransceiver('video', { direction: 'sendrecv', streams: [this.local] });
+      await this.attachTracks(pc);
+    }
+    pc.ontrack = e => {
+      if (this.pc !== pc || this.disposed || this.ended) return;
+      remote.addTrack(e.track);
+      const update = () => { if (this.pc === pc && !this.disposed) this.emit({ remote }); };
+      e.track.onunmute = update; e.track.onmute = update; e.track.onended = update;
+      update();
+    };
     pc.onicecandidate = e => { if (e.candidate && this.pc === pc) void this.send('candidate', e.candidate.toJSON()).catch(() => {}); };
     pc.onconnectionstatechange = () => {
-      if (this.pc !== pc || this.disposed) return;
+      if (this.pc !== pc || this.disposed || this.ended) return;
+      clearTimeout(this.connectionTimer);
       this.emit({ connection: pc.connectionState });
-      if (pc.connectionState === 'failed') this.emit({ error: this.config.relayAvailable ? 'The call could not connect. Reconnect or try another network.' : 'These networks could not connect directly. Try another network; the site owner can configure a TURN relay for wider call coverage.' });
+      if (pc.connectionState === 'connected') this.emit({ error: '' });
+      else if (pc.connectionState === 'failed') this.connectionFailed();
+      else if (pc.connectionState === 'connecting' || pc.connectionState === 'disconnected') {
+        this.connectionTimer = setTimeout(() => { if (this.pc === pc && !this.disposed && !this.ended && pc.connectionState !== 'connected') this.connectionFailed(); }, 25000);
+      }
     };
+  }
+  private connectionFailed() {
+    this.emit({ connection: 'failed', error: this.config.relayAvailable
+      ? 'Audio/video could not reach your partner. Press Reconnect on either device to retry the call.'
+      : 'Audio/video cannot cross these networks yet because this site has no call relay configured. Reconnecting alone may not help.' });
+  }
+  private async attachTracks(pc: RTCPeerConnection) {
+    for (const t of pc.getTransceivers()) {
+      const kind = t.receiver.track.kind;
+      if (kind !== 'audio' && kind !== 'video') continue;
+      t.direction = 'sendrecv';
+      t.sender.setStreams(this.local);
+      if (kind === 'audio') this.audioSender = t.sender; else this.videoSender = t.sender;
+      await t.sender.replaceTrack(this.local.getTracks().find(track => track.kind === kind && track.readyState === 'live') || null);
+    }
   }
   private send(kind: string, payload: unknown) {
     const epoch = this.epoch;
@@ -126,6 +161,7 @@ export class PeerCall {
       for (const c of this.candidates) await pc.addIceCandidate(c);
       this.candidates = [];
       if (payload.type === 'offer') {
+        await this.attachTracks(pc);
         await pc.setLocalDescription(await pc.createAnswer());
         await this.send('description', pc.localDescription!.toJSON());
       }
@@ -133,7 +169,11 @@ export class PeerCall {
     else this.candidates.push(payload);
   }
   async reconnect() {
+    if (this.disposed || this.ended) return;
+    clearTimeout(this.connectionTimer); this.pc?.close();
     clearTimeout(this.timer); this.controller.abort(); this.controller = new AbortController();
+    this.emit({ connection: 'connecting', remote: null, error: '' });
+    // start() fetches fresh relay credentials before connecting.
     this.clientId = crypto.randomUUID(); this.epoch = -1; this.cursor = 0;
     await this.start();
   }
@@ -156,7 +196,7 @@ export class PeerCall {
         track.onended = () => { this.local.removeTrack(track); this.refreshMedia(); if (kind === 'audio') this.stopRecording(); };
         await (kind === 'audio' ? this.audioSender : this.videoSender)?.replaceTrack(track);
       }
-      this.refreshMedia(); this.emit({ error: '' }); this.updateRecording();
+      this.refreshMedia(); if (this.state.connection !== 'failed') this.emit({ error: '' }); this.updateRecording();
     } catch (e) {
       const name = (e as DOMException).name;
       this.emit({ error: name === 'NotAllowedError' ? `${kind === 'audio' ? 'Microphone' : 'Camera'} permission was denied. Allow it in your browser's site settings, then try again.` : name === 'NotFoundError' ? `No ${kind === 'audio' ? 'microphone' : 'camera'} was found. Check your device connection.` : (e as Error).message });
@@ -225,13 +265,14 @@ export class PeerCall {
     if (this.recorder?.state === 'recording') this.recorder.stop();
   }
   async finish() {
+    clearTimeout(this.connectionTimer);
     this.ended = true; this.emit({ pending: this.uploads.size + (this.recorder ? 1 : 0) }); this.stopRecording(); this.stopTracks(); this.pc?.close();
     this.emit({ connection: 'ended', mic: false, camera: false });
     await this.recordingFinished; await Promise.all([...this.uploads]);
   }
   private stopTracks() { this.local.getTracks().forEach(t => t.stop()); }
   destroy() {
-    this.disposed = true; clearTimeout(this.timer); this.stopRecording(false); this.stopTracks(); this.pc?.close(); void this.audioContext?.close(); this.controller.abort();
+    this.disposed = true; clearTimeout(this.timer); clearTimeout(this.connectionTimer); this.stopRecording(false); this.stopTracks(); this.pc?.close(); void this.audioContext?.close(); this.controller.abort();
     void fetch('/api' + this.path('leave'), { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId: this.clientId }), keepalive: true }).catch(() => {});
   }
 }

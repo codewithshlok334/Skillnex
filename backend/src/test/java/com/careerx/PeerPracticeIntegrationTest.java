@@ -22,7 +22,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.*;
 
-@SpringBootTest @AutoConfigureMockMvc @ActiveProfiles("test")
+@SpringBootTest(properties={"app.peer.turn-urls=turn:relay.example:80,turns:relay.example:443?transport=tcp", "app.peer.turn-secret=test-relay-secret"}) @AutoConfigureMockMvc @ActiveProfiles("test")
 class PeerPracticeIntegrationTest {
   @Autowired MockMvc mvc; @Autowired ObjectMapper json; @Autowired Store db;
   @MockitoBean AIService ai;
@@ -40,6 +40,37 @@ class PeerPracticeIntegrationTest {
   String connect(User u,String id)throws Exception{String cid=UUID.randomUUID().toString();ok(u,"/rooms/"+id+"/connect",Map.of("clientId",cid));return cid;}
   JsonNode getRoom(User u,String id)throws Exception{return body(mvc.perform(get("/api/peer/rooms/"+id).cookie(u.cookie)).andExpect(status().isOk()).andReturn());}
   JsonNode action(User u,String id,String action)throws Exception{return ok(u,"/rooms/"+id+"/action",Map.of("action",action,"revision",getRoom(u,id).path("revision").asInt()));}
+  @Test void relayCredentialsAreAuthenticatedShortLivedAndDoNotExposeIdentityOrSecret()throws Exception{
+    mvc.perform(get("/api/peer/config")).andExpect(status().isUnauthorized());
+    var u=user();
+    var config=body(mvc.perform(get("/api/peer/config").cookie(u.cookie)).andExpect(status().isOk()).andReturn());
+    assertTrue(config.path("relayAvailable").asBoolean());
+    var relay=config.path("iceServers").get(1);
+    assertEquals(2,relay.path("urls").size());
+    String username=relay.path("username").asText();
+    long remaining=Long.parseLong(username.split(":")[0])-System.currentTimeMillis()/1000;
+    assertTrue(remaining>10700 && remaining<=10800);
+    assertFalse(username.contains(u.id));
+    assertFalse(config.toString().contains("test-relay-secret"));
+    var mac=javax.crypto.Mac.getInstance("HmacSHA1");
+    mac.init(new javax.crypto.spec.SecretKeySpec("test-relay-secret".getBytes(StandardCharsets.UTF_8),"HmacSHA1"));
+    assertEquals(Base64.getEncoder().encodeToString(mac.doFinal(username.getBytes(StandardCharsets.UTF_8))),relay.path("credential").asText());
+    var refreshed=body(mvc.perform(get("/api/peer/config").cookie(u.cookie)).andExpect(status().isOk()).andReturn());
+    assertNotEquals(username,refreshed.path("iceServers").get(1).path("username").asText());
+  }
+  @Test void managedRelayUsesTurnCredentialsAndRejectsIncompleteConfiguration()throws Exception{
+    var managed=new com.careerx.controller.PeerPracticeController(null,null,ai,null,null,
+      "turn:relay.example:80, turns:relay.example:443?transport=tcp","","turn-user","turn-password","");
+    JsonNode config=json.valueToTree(managed.config(()->"user"));
+    assertTrue(config.path("relayAvailable").asBoolean());
+    assertEquals("turn-user",config.path("iceServers").get(0).path("username").asText());
+    assertEquals("turn-password",config.path("iceServers").get(0).path("credential").asText());
+    assertEquals("turns:relay.example:443?transport=tcp",config.path("iceServers").get(0).path("urls").get(1).asText());
+    var incomplete=new com.careerx.controller.PeerPracticeController(null,null,ai,null,null,"turn:relay.example:80","","turn-user","","");
+    JsonNode disabled=json.valueToTree(incomplete.config(()->"user"));
+    assertFalse(disabled.path("relayAvailable").asBoolean());
+    assertTrue(disabled.path("iceServers").isEmpty());
+  }
   @Test void expiredActiveRoomEndsAndStopsPublishingMedia()throws Exception{
     var h=user();var g=user();String id=create(h),path="/rooms/"+id;
     ok(g,path+"/join",Map.of());String hc=connect(h,id);connect(g,id);action(h,id,"start");

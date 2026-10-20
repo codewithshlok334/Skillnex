@@ -18,21 +18,34 @@ const roomId = (text: string) => {
 };
 const elapsed = (ms: number) => `${String(Math.floor(ms/60000)).padStart(2,'0')}:${String(Math.floor(ms/1000)%60).padStart(2,'0')}`;
 
-function Portrait({ person, stream, camera, mic, self, label }: { person?: Pick<PeerParticipant,'name'|'photo_url'>; stream?: MediaStream | null; camera?: boolean; mic?: boolean; self?: boolean; label: string }) {
+export function Portrait({ person, stream, camera, mic, self, label }: { person?: Pick<PeerParticipant,'name'|'photo_url'>; stream?: MediaStream | null; camera?: boolean; mic?: boolean; self?: boolean; label: string }) {
   const video = useRef<HTMLVideoElement>(null);
+  const audio = useRef<HTMLAudioElement>(null);
   const [blocked, setBlocked] = useState(false);
   useEffect(() => {
     const el = video.current; if (!el) return;
     el.srcObject = stream || null;
-    if (stream) void el.play().then(() => setBlocked(false)).catch(() => setBlocked(true));
-    return () => { el.srcObject = null; };
+    const play = () => { if (stream) void el.play().catch(() => {}); };
+    play(); stream?.addEventListener('addtrack', play);
+    return () => { stream?.removeEventListener('addtrack', play); el.srcObject = null; };
   }, [stream]);
+  useEffect(() => {
+    const el = audio.current; if (!el || self || !stream) return;
+    let active = true;
+    el.srcObject = stream;
+    const play = () => { if (stream.getAudioTracks().length) void el.play().then(() => { if (active) setBlocked(false); }).catch(() => { if (active) setBlocked(true); }); };
+    play(); stream.addEventListener('addtrack', play);
+    // A click on any call control can also unlock sound on browsers that require a gesture.
+    document.addEventListener('pointerdown', play); document.addEventListener('keydown', play);
+    return () => { active = false; stream.removeEventListener('addtrack', play); document.removeEventListener('pointerdown', play); document.removeEventListener('keydown', play); el.srcObject = null; };
+  }, [stream, self]);
   return <div className={`pp-person ${self ? 'pp-self' : ''} ${!person ? 'pp-person-empty' : ''}`}>
-    <video ref={video} autoPlay playsInline muted={self} className={camera && stream ? 'is-visible' : ''} aria-label={self ? 'Your camera preview' : 'Partner video'} />
+    <video ref={video} autoPlay playsInline muted className={camera && stream ? 'is-visible' : ''} aria-label={self ? 'Your camera preview' : 'Partner video'} />
+    {!self && <audio ref={audio} autoPlay aria-label="Partner audio" />}
     {!(camera && stream) && <div className="pp-profile-fallback"><span className="pp-profile-orbit" /><span className="pp-profile-orbit pp-orbit-two" /><div className="pp-profile-photo">{person?.photo_url ? <img src={person.photo_url} alt={person.name} /> : person ? initials(person.name) : <Users size={34} />}</div><strong>{person?.name || 'Your partner’s place'}</strong><small>{person ? 'Camera is off' : 'A good conversation starts with two.'}</small></div>}
     <span className="pp-role-label">{label}</span>
     <div className="pp-person-name"><span>{person ? `${person.name}${self ? ' (you)' : ''}` : 'Waiting for a partner'}</span>{mic ? <Mic size={15} /> : <MicOff size={15} />}</div>
-    {blocked && !self && stream && mic && <button className="pp-enable-audio" onClick={() => void video.current?.play().then(() => setBlocked(false)).catch(() => toast.error('Your browser is blocking playback. Check its sound settings.'))}><Volume2 size={16} /> Hear your partner</button>}
+    {blocked && !self && stream && mic && <button className="pp-enable-audio" onClick={() => void audio.current?.play().then(() => setBlocked(false)).catch(() => toast.error('Your browser is blocking playback. Check its sound settings.'))}><Volume2 size={16} /> Hear your partner</button>}
   </div>;
 }
 

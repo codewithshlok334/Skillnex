@@ -89,9 +89,29 @@ microphone/camera access (localhost is allowed for development).
 work without a relay, but restrictive mobile, corporate or NAT networks require
 a TURN server. Configure `PEER_TURN_URLS` (comma-separated turn/turns URLs) and
 `PEER_TURN_SECRET` with an existing coturn-compatible REST shared secret. The
-backend generates short-lived credentials; the shared secret stays server-side.
+backend generates anonymous three-hour credentials covering the two-hour room
+and setup time; the shared secret stays server-side. Reconnect fetches fresh credentials.
+For managed TURN providers (including Metered), use their TURN URLs with
+`PEER_TURN_USERNAME` and `PEER_TURN_PASSWORD` instead, leaving `PEER_TURN_SECRET`
+empty. These must be TURN credentials, not the provider's API/admin key.
+Include the provider's UDP, TCP and TLS-on-443 URLs to support different networks.
 No TURN service is provisioned automatically. Render's web service is not a TURN
 relay. Keep these credentials out of source control.
+
+The free [Metered Open Relay plan](https://www.metered.ca/tools/openrelay/)
+requires an account for managed credentials. Choose the free plan and check its
+current usage allowance before enabling it. Set the three managed TURN variables
+in Render's environment, save, redeploy, and reopen the room on both devices.
+Do not rely on old shared public TURN credentials without testing them.
+
+Browser regression check: run the frontend dev server and open
+`/qa/peer-media.html`. It exercises the actual call and playback code with two
+synthetic cameras and audible tones (no physical devices or real user data).
+Check devices enabled both before and after joining, camera off/on, reconnect,
+and both received audio energy and decoded video frames. To check relay-only ICE,
+paste the provider's ICE server JSON into the fixture's password field (kept in
+memory only). Test both normal relay selection and TLS-only port 443.
+This fixture is not included in the production build.
 
 Calls have two participants, expire after two active hours, and use database
 polling for signaling. This is a small-scale practice room, not group conferencing.
