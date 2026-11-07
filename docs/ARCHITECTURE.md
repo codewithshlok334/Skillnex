@@ -2,7 +2,7 @@
 
 ## Runtime boundaries
 
-The browser talks only to the same-origin `/api` endpoint. Vite proxies development requests to Spring Boot; Nginx serves the production build and proxies the API and OAuth callback paths.
+The browser talks to the same-origin `/api` endpoint. Vite proxies development requests to Spring Boot. The single-site Render Docker build packages the frontend inside Spring Boot; the separate Nginx configuration remains an alternative deployment.
 
 React Router separates tools into routes. TanStack Query owns server state and invalidation. Builder drafts are stored locally per authenticated account ID; saved resumes belong to the server-side account. Framer Motion respects reduced-motion preferences. Dialog primitives use Radix; buttons follow shadcn/ui composition conventions.
 
@@ -17,6 +17,8 @@ Flyway migrations are the source of truth:
 - `backend/src/main/resources/db/migration/V1__careerx.sql`
 - `backend/src/main/resources/db/migration/V2__operational_indexes.sql`
 
+Keep the complete migration history through V12. V9 adds CodeLab, V10 adds Peer Practice, V11 adds Aptitude Arena, and V12 adds learning achievement definitions and saved mock-award results. These updates retain existing identities and records.
+
 | Aggregate    | Tables and relationships                                                                                                   |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------- |
 | Identity     | `app_users` → one `profiles`; role constrained to STUDENT/FACULTY/ADMIN; single-use hashed `password_resets`               |
@@ -27,10 +29,14 @@ Flyway migrations are the source of truth:
 | Moderation   | unique report per reporter + target; content is soft-hidden on removal                                                     |
 | Roadmap      | user → `career_goals` → `career_roadmaps` → ordered `roadmap_items`                                                        |
 | Activity     | user → `notifications`, `ai_usage`; globally unique reminder event keys; persistent `rate_limits`                          |
+| Aptitude     | `aptitude_questions` → user-owned `aptitude_attempts`; `aptitude_mocks` stores question IDs, answers, revisions, deadlines and final awards |
+| Learning rewards | Existing `badges` / unique `user_badges`; CodeLab coins derive from distinct accepted problem IDs, and streaks from first-solve dates |
 
 Indexes cover ownership, chronological lists, categories, votes, reports, reminder scans, and recent analysis lookups. Foreign keys, uniqueness constraints, role/status checks, and progress bounds enforce invariants independently of the UI.
 
 ## AI architecture
+
+Aptitude grading and rewards do not require AI. The server loads the checked-in 500-question bank, validates responses and persists results. Active mocks omit solutions and answer-key links; practice checks for overlapping questions are blocked until completion. One server deadline covers the entire mock, and revisions prevent stale answer writes. User-row locks serialize completion and badge grants; retries do not duplicate attempts, coins or awards. The browser celebrates the saved outcome and refreshes profile/progress queries. [Feature details](APTITUDE-AND-ACHIEVEMENTS.md) define each milestone.
 
 `AIService` defines structured generation and embeddings. `HttpAIService` contains separate OpenAI-compatible and Anthropic protocol paths. `AIExecutor` applies per-user limits and records usage. Domain services are `ResumeAIService`, `InterviewAIService`, `CommunityAIService`, and `CareerAIService`.
 

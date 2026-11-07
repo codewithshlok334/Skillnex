@@ -10,6 +10,8 @@ CodeLab is a separate practice area at `/app/codelab`. It does not call the inte
 - On desktop, the question stays on the left and the editor on the right, with independent scrolling. Narrow screens use Question/Code tabs.
 - The top Settings button includes Dark/Light appearance, editor font size, default language, indentation and line wrapping, plus account/profile/privacy/password recovery and logout controls. Appearance/editor preferences persist on the current browser. Drafts remain account-owned in the database. Changing the default language does not replace the active editor.
 - Run checks the two examples. Submit checks all six cases. Only an accepted **Submit** marks the question solved.
+- Each unique first accepted Submit immediately earns **1 SkillCoin**. Runs, wrong answers and repeat accepted submissions award no extra coin. Existing accepted problems count toward the total.
+- Profile progress includes current/best daily streaks and the green activity calendar. Shared achievement stickers unlock from CodeLab milestones or Aptitude mock scores, stay on the profile and trigger a 5.5-second celebration. Aptitude never awards SkillCoins. See [all reward criteria](APTITUDE-AND-ACHIEVEMENTS.md).
 - Programs read standard input and print their answer. Java uses `public class Main`; other variable names and implementation choices are unrestricted. Judging compares output tokens, not source code. Pair Budget accepts any valid pair of indices, in either order.
 
 ## Run the application

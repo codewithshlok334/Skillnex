@@ -1,6 +1,6 @@
 # SkillNex — full source update
 
-This is the complete frontend and backend as of 4 October 2026, including interview microphone/layout recovery, SkillNex branding, colorful tool cards, authentication/data recovery fixes and CodeLab with 50 questions in Java, C++ and Python. For a fresh computer, start with [NEW-SYSTEM-SETUP.md](NEW-SYSTEM-SETUP.md).
+This source includes the November 8, 2026 Aptitude Arena update: 500 quantitative/reasoning/verbal MCQs, untimed practice, configurable timed mocks, final analysis, profile stickers, CodeLab-only coins/streaks and stronger new-password validation. Earlier interview, roadmap, peer-call and CodeLab functionality is retained. See [feature details](docs/APTITUDE-AND-ACHIEVEMENTS.md). For a fresh computer, start with [NEW-SYSTEM-SETUP.md](NEW-SYSTEM-SETUP.md).
 
 
 ### Live interview update
@@ -18,7 +18,7 @@ Use the updated frontend **and** backend together. Keep your private provider co
 3. Extract this ZIP into a **new folder**. Open `SkillNex/SkillNex.code-workspace` in VS Code. The Explorer will show **SkillNex**.
 4. With both backends stopped, copy your existing `backend/data` folder into the extracted project's `backend/data` to keep your local H2 accounts, chats and other database records. Copy the entire folder, not just selected database files. Keep your old backup.
 5. Copy your private `backend/config/ai.properties` into the same location in the extracted project to retain your Gemini connection. If you use environment variables or PostgreSQL instead, keep those existing settings and point the new backend at the same database. Do not share your key file.
-6. Keep all included V1–V9 database migrations; the backend applies only migrations that are missing. Historical migrations must remain intact; V9 adds CodeLab. Do not edit old migrations or reset the database.
+6. Keep all included V1–V12 database migrations; the backend applies only migrations that are missing. V11 adds Aptitude Arena and V12 adds learning awards. Historical migrations must remain intact. Do not edit old migrations or reset the database. Existing passwords are retained; the new rules apply to signup and user-requested resets.
 7. Start the two servers below. Use the same login account as before. Opening a fresh empty database or a different demo account will show different data.
 
 The archive uses a `SkillNex` root folder; older local copies may still be named `careerx`. Internal database/session identifiers remain compatible. Set up CodeLab again on a new machine with `START-CODELAB.cmd`; do not copy machine-specific runner configuration.
@@ -67,7 +67,7 @@ On 4 October 2026, the frontend build, 68 frontend tests and 62 backend tests pa
 
 ## Archive contents
 
-Source code, public assets, tests, V1–V9 migrations, all 50 coding questions, example configuration, Docker/compose files and VS Code tasks are included. `node_modules`, build output, private keys/configuration, local databases and logs are excluded. `npm ci` and Maven recreate dependencies; private settings and saved data come from your existing local copy. The local CodeLab sandbox and its language runtimes download during first setup.
+Source code, public assets, tests, V1–V12 migrations, all 50 coding questions, the 500-question Aptitude bank and its generator/source metadata, example configuration, Docker/compose files and VS Code tasks are included. `node_modules`, build output, private keys/configuration, local databases and logs are excluded. `npm ci` and Maven recreate dependencies; private settings and saved data come from your existing local copy. The local CodeLab sandbox and its language runtimes download during first setup.
 
 See `START_HERE_VSCODE.md`, `docs/INTERVIEW-VOICE-LAYOUT-UPDATE.md` and `docs/SKILLNEX-BRANDING.md` for details.
 

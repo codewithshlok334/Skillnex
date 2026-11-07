@@ -47,6 +47,28 @@ curl -b cookies.txt http://localhost:8080/api/dashboard
 
 Google entry point: `/oauth2/authorization/google`. Callback: `/login/oauth2/code/google`. These are outside the `/api` prefix.
 
+New signup and password-reset requests require 9+ characters, an ASCII capital, a digit and a non-whitespace symbol, within BCrypt's 72-byte limit. Login accepts existing passwords without applying these new composition rules. Google setup remains deferred.
+
+## Aptitude Arena and learning rewards
+
+All paths use the `/api` prefix and require the existing session. Responses are private and `no-store`.
+
+| Method | Path | Request / result |
+| --- | --- | --- |
+| GET | /aptitude/questions | 20 per page; `search`, `category`, `topic`, `difficulty`, `progress`, `source`, zero-based `page`; no answer keys |
+| GET | /aptitude/questions/{id} | MCQ, four choices, provenance and current user's solved status |
+| POST | /aptitude/questions/{id}/answers | `answerIndex` 0–3, UUID `requestKey`; instant correctness and explanation in practice |
+| GET | /aptitude/progress | Solved totals, accuracy, weak topics, daily attempts and recent mocks |
+| POST | /aptitude/mocks | `category`, `difficulty` (empty means mixed), `count` 1–100, `minutes` 1–180, UUID `requestKey` |
+| GET | /aptitude/mocks/{id} | Owned test, saved answers, revision, deadline; reviews only when completed |
+| PUT | /aptitude/mocks/{id}/answers | `questionId`, nullable `answerIndex`, `marked`, current `revision` |
+| POST | /aptitude/mocks/{id}/submit | Final score, topic breakdown, every answer's review and newly earned `awards`; safe to retry |
+| GET | /codelab/activity | Existing activity calendar plus `coins` and current/longest `streak`; accepts `timeZone` |
+
+Categories are `Quantitative`, `Reasoning`, `Verbal`; source filters are `ORIGINAL` or `GATE_PYQ`; progress filters are `solved` or `todo`. An empty filter includes all values. Mock grading is +1 correct, zero wrong/skipped. The server enforces expiry and revision checks. Questions in the user's active mock cannot simultaneously be checked in practice.
+
+Completed CodeLab submission results include `awards`, `coinsEarned` and `coinBalance`. Only a unique problem's first accepted Submit earns a coin. `GET /users/me` includes persistent earned badges; the profile shows the full five-sticker collection, including locked entries. See [criteria and content sources](APTITUDE-AND-ACHIEVEMENTS.md).
+
 ## Resumes
 
 | Method | Path                            | Request / result                                                                                       |

@@ -53,6 +53,7 @@ The Blueprint disables automatic code deployments; later code changes need **Man
 - Ask two consecutive AI questions and analyze a non-sensitive sample resume.
 - Allow microphone/camera for the public HTTPS address and test a real interview. Gemini Live model access and quota must work in your Google account.
 - Check CodeLab questions, search, theme and saved drafts.
+- Open Aptitude Arena: verify 500 questions, verbal/reasoning filters, instant practice explanations, solved stars and a timed mock's final report. Check profile stickers and CodeLab's first-submit coin/streak.
 - In CodeLab, verify Run and Submit with a small correct program in Java, C++ and Python; also check that incorrect output is not accepted.
 - Open the public link from another device with your laptop off.
 
@@ -64,6 +65,9 @@ The Blueprint disables automatic code deployments; later code changes need **Man
 | AI assistant, analysis and AI interviews | Uses your configured Gemini models and quota |
 | 50 CodeLab questions, editor and saved drafts | Included |
 | CodeLab Run / Submit | Configured to use the shared public Judge0 sandbox; availability and limits are best-effort |
+| 500-question Aptitude Arena, practice and timed mocks | Included; question serving and grading need no AI key |
+| Profile stickers, CodeLab-only SkillCoins and streaks | Included; persistent progress in the existing database |
+| Strong new-password validation | Included; existing passwords and accounts retained |
 | Password-reset email | Requires a working mail service; not configured here |
 | Google sign-in | Requires separate provider configuration |
 

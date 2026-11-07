@@ -1,6 +1,6 @@
 # SkillNex ko doosre system par chalayein
 
-Yeh complete editable source package hai: frontend, backend, latest interview/mic recovery fixes, chat, resumes, CodeLab ke 50 DSA questions, Java/C++/Python solutions, tests, database migrations, images aur launchers included hain. Project ko dobara banane ki zaroorat nahi.
+Yeh complete editable source package hai: frontend, backend, latest interview/mic recovery fixes, chat, resumes, CodeLab ke 50 DSA questions, Java/C++/Python solutions, Aptitude Arena ke 500 MCQs (quantitative, reasoning, verbal), practice/mock tests, profile stickers, CodeLab coins/streaks, tests, database migrations, images aur launchers included hain. Project ko dobara banane ki zaroorat nahi. [Naye features aur rules](docs/APTITUDE-AND-ACHIEVEMENTS.md) yahan hain; purane accounts/passwords retain hote hain.
 
 ## 1. Extract aur prerequisites
 

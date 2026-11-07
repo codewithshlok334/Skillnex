@@ -1,5 +1,15 @@
 # Verification record
 
+## Aptitude Arena, achievements and passwords (November 8, 2026)
+
+- Full backend suite: **101 tests passed**, zero failures/errors. Frontend: **106 tests passed**; TypeScript/Vite production build passed. The subsequent seed batching change also passed all eight focused Aptitude tests and packaging.
+- Flyway V11/V12 and the 500-question seed were verified on an isolated Neon branch copied from production. Practice wrong/right feedback, stars, 143 verbal questions and 20 verified GATE-source entries passed API checks. A 20-question Hard mock preserved saved answers and produced the correct 20/20 report and five persistent badges.
+- Real Python Run/Submit via the configured Judge0 runner passed. First accepted Submit awarded one coin; repeat Submit awarded zero; the profile balance and one-day streak matched.
+- Browser checks covered the separate sidebar entry, untimed practice explanations, a single mock timer, final analysis, coloured/locked stickers, the celebration popup and automatic dismissal, mobile profile layout, light mode and the invalid-new-password popup. No browser console errors were observed during these flows.
+- Legacy-password tests verify that existing login passwords, hashes and saved profile fields remain unchanged. Google sign-in setup is deferred. This release does not claim a new physical microphone/camera, Google OAuth or SMTP acceptance test.
+
+The historical records below describe their respective earlier revisions.
+
 ## Career roadmap and retired tools (October 20)
 
 TypeScript/Vite production build passed. All 35 focused backend checks passed: 21 platform integration, 12 AI provider contract and 2 roadmap PDF tests. Coverage includes private PDF exports, saved progress, multi-page long content, and retired LinkedIn Review / Job Match endpoints returning 404. Roadmap map/list switching, completion/reopening, generation, empty/error states, mobile scrolling and light mode were checked in the browser. All four pages of the sample PDF were rendered and visually reviewed.

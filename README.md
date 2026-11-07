@@ -2,7 +2,7 @@
 
 **Running on another computer?** Start with [NEW-SYSTEM-SETUP.md](NEW-SYSTEM-SETUP.md) for prerequisites, Gemini configuration, CodeLab setup and first launch.
 
-**One website, one public link:** [FREE-DEPLOYMENT.md](docs/FREE-DEPLOYMENT.md) deploys the frontend and backend together on Render, using your Neon database and Gemini key. No Vercel account is needed. Deployment files are prepared; the public site still needs to be deployed. A cloud code runner and working email delivery need separate setup.
+**One website, one public link:** [SkillNex](https://skillnex-40n9.onrender.com) serves the frontend and backend together on Render, with persistent data in Neon. [FREE-DEPLOYMENT.md](docs/FREE-DEPLOYMENT.md) explains deployment and provider setup. No Vercel account is needed. AI, code execution and email depend on their configured services.
 
 **Updating your existing project?** Read [UPDATE_AND_CHECK.md](UPDATE_AND_CHECK.md) first to retain your database and private Gemini settings.
 
@@ -88,6 +88,11 @@ Spring Boot does not automatically read the root `.env` file outside Compose. Ex
 ## What works
 
 - Email/password signup, login, logout, expiring signed JWT cookies, single-use reset tokens, SMTP reset delivery, and configurable Google OIDC.
+- New signup/reset passwords require 9+ characters, a capital letter, a number and a symbol; the form shows a compact checklist and validation popup. Existing login passwords and account data remain unchanged. Google sign-in setup is currently deferred.
+- Separate **Aptitude Arena** with 500 single-answer MCQs: quantitative aptitude, logical reasoning and verbal ability, searchable by topic, level, source and solved status. Includes 480 original exercises and 20 verified GATE paraphrases with official sources.
+- Untimed practice with instant **Check my answer** feedback, explanations and solved stars; configurable mock tests with one overall timer, saved answers and question-by-question analysis after submission/expiry.
+- Aptitude progress charts, weak-topic feedback, recent mock scores and five permanent profile stickers. Earned stickers appear in colour, locked stickers in grayscale, with a 5.5-second celebration on unlock.
+- **CodeLab** with 50 DSA problems in Java, C++ and Python, Run/Submit, saved drafts and hidden test cases. Each unique first fully accepted Submit earns one SkillCoin; sample runs and repeat solves do not. Profile totals, daily streaks, activity calendar and shared badges update from accepted submissions.
 - Student/faculty/admin access controls; ownership checks for private resumes, interviews, and roadmaps.
 - PDF and DOCX parsing with file and page limits; extracted-text review.
 - Structured AI analysis and grounded wording improvements.
@@ -173,10 +178,13 @@ frontend/src/
   components/    shared product components and shadcn-style Radix UI primitives
   hooks/         session and server configuration
   layouts/       persistent workspace shell
-  pages/         dashboard, auth, resume, interview, community, roadmap, admin
+  pages/         dashboard, auth, resume, interview, community, roadmap, CodeLab, Aptitude, admin
   types/         API-facing TypeScript models
   utils/         timezone and presentation helpers
 backend/src/main/java/com/careerx/
+  aptitude/      question bank, practice grading, timed mocks and progress
+  achievements/  shared CodeLab/Aptitude badge awards and historical backfill
+  codelab/       coding questions, isolated runner integration, coins and streaks
   ai/            provider abstraction, orchestration, domain AI services
   config/        security configuration, Google registration, explicit demo seed
   controller/    REST endpoints and validated request DTO consumption
@@ -186,6 +194,7 @@ backend/src/main/java/com/careerx/
   service/       document, interview, community, reminder workflows
   exception/     safe API error responses
 backend/src/main/resources/
+  aptitude/      versioned 500-question MCQ source bank
   db/migration/  versioned PostgreSQL-compatible schema and indexes
   prompts/       backend prompt templates
 ```
@@ -205,8 +214,9 @@ Career roadmap now includes 26 suggested goals, searchable by category. A custom
 goal is still supported.
 
 - [API reference](docs/API.md)
+- [Aptitude Arena, stickers, coins and password rules](docs/APTITUDE-AND-ACHIEVEMENTS.md)
 - [Architecture and data model](docs/ARCHITECTURE.md)
 - [Production deployment](docs/DEPLOYMENT.md)
 - [Verification and known boundaries](docs/VERIFICATION.md)
 
-This source is deployable, but no public deployment, live AI inference, Google OAuth exchange, or external SMTP delivery has been performed without your service configuration.
+Use the verification record for dated checks and remaining provider-dependent limitations. Google OAuth and SMTP delivery still require their own configuration.
