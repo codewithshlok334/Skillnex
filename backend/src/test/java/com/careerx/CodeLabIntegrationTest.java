@@ -70,8 +70,16 @@ class CodeLabIntegrationTest {
   sumRunner();Account a=account();String source="different_variable_names_and_algorithm";
   String runId=body(submit(a,"python","RUN",source,db.id()).andExpect(status().isOk())).path("id").asText();
   JsonNode run=finish(a,runId);assertEquals("ACCEPTED",run.path("status").asText());assertEquals(2,run.path("total").asInt());
+  assertEquals(0,run.path("result").path("awards").size());
+  assertEquals(0,run.path("result").path("coinsEarned").asInt());
   assertEquals(0,body(getAs(a,"/questions")).path("progress").path("solved").asInt());
   String id=body(submit(a,"cpp","SUBMIT",source,db.id())).path("id").asText();JsonNode result=finish(a,id);assertEquals("ACCEPTED",result.path("status").asText());assertEquals(6,result.path("total").asInt());
+  assertEquals("learning-first",result.path("result").path("awards").get(0).path("id").asText());
+  assertEquals(1,result.path("result").path("coinsEarned").asInt());assertEquals(1,result.path("result").path("coinBalance").asInt());
+  JsonNode repeat=finish(a,body(submit(a,"java","SUBMIT",source,db.id())).path("id").asText());
+  assertEquals(0,repeat.path("result").path("coinsEarned").asInt());assertEquals(1,repeat.path("result").path("coinBalance").asInt());
+  JsonNode activity=body(getAs(a,"/activity?timeZone=Asia/Kolkata"));assertEquals(1,activity.path("coins").asInt());assertEquals(1,activity.path("streak").path("current").asInt());
+  assertEquals(1,db.count("SELECT COUNT(*) FROM user_badges WHERE user_id=? AND badge_id='learning-first'",a.id()));
   assertEquals(1,body(getAs(a,"/questions")).path("progress").path("solved").asInt());
   for(JsonNode t:result.path("result").path("cases"))if(!t.path("sample").asBoolean()){assertFalse(t.has("input"));assertFalse(t.has("expected"));assertFalse(t.has("output"));assertFalse(t.has("error"));}
   getAs(account(),"/submissions/"+id).andExpect(status().isNotFound());

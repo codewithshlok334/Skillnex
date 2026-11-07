@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowUpRight, Code2 } from 'lucide-react';
+import { ArrowUpRight, Code2, Coins, Flame } from 'lucide-react';
 import { api } from '../api/client';
 import { useSession } from '../hooks/useSession';
 import { Card, ErrorState, Loading } from './Common';
@@ -10,7 +10,7 @@ import { activityCalendar, activityDate, activityLevel } from '../utils/codingAc
 import type { ActivityDay } from '../utils/codingActivity';
 import '../coding-activity.css';
 
-type Activity = { year: number; today: string; timeZone: string; firstYear: number; totalSolved: number; solvedThisYear: number; activeDays: number; pendingSubmissions: boolean; days: ActivityDay[] };
+type Activity = { year: number; today: string; timeZone: string; firstYear: number; totalSolved: number; solvedThisYear: number; activeDays: number; pendingSubmissions: boolean; days: ActivityDay[]; coins: number; streak: { current: number; longest: number; solvedToday: boolean } };
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export function CodingActivity() {
@@ -55,6 +55,7 @@ export function CodingActivity() {
     </header>
     {activity.isLoading ? <Loading text="Loading your coding activity…" /> : activity.error ? <ErrorState error={activity.error} retry={() => activity.refetch()} /> : data && <>
       <div className="ca-stats" aria-live="polite"><div><strong>{data.totalSolved}</strong><span>problems solved · all time</span></div><div><strong>{data.solvedThisYear}</strong><span>solved in {year}</span></div><div><strong>{data.activeDays}</strong><span>active {data.activeDays === 1 ? 'day' : 'days'} in {year}</span></div></div>
+      <div className="ca-rewards"><div><Coins size={22} /><strong>{data.coins ?? data.totalSolved}</strong><span>SkillCoins<small>+1 per unique CodeLab solve</small></span></div><div><Flame size={22} /><strong>{data.streak?.current ?? 0}</strong><span>day streak<small>{data.streak?.solvedToday ? 'Today’s solve is complete' : 'Solve a new problem today'}</small></span></div><div><strong>{data.streak?.longest ?? 0}</strong><span>best streak<small>consecutive solving days</small></span></div></div>
       <p className="ca-caption">{data.solvedThisYear ? `Your first accepted solutions in ${year}.` : `Your first accepted solution will light up this calendar.`} Each question counts once, after all Submit tests pass.</p>
       <div className="ca-calendar-scroll" ref={scroll} role="group" aria-label={`Daily problems solved in ${year}. Use arrow keys to move between days.`}>
         <div className="ca-calendar" style={{ '--ca-weeks': (days.at(-1)?.week ?? 52) + 1 } as CSSProperties}>

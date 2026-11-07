@@ -8,6 +8,9 @@ import { Logo } from '../layouts/AppLayout';
 import { Button } from '../components/ui/button';
 import { ErrorState, Loading } from '../components/Common';
 import { OrbitArt } from './Dashboard';
+import { toast } from 'sonner';
+import { passwordChecks, passwordError, passwordRuleMessage } from '../utils/passwordPolicy';
+import '../password-rules.css';
 type AuthMode = 'login' | 'signup' | 'forgot' | 'reset' | 'demo';
 
 export function Auth({ mode = 'login' }: { mode?: AuthMode }) {
@@ -23,6 +26,7 @@ function AuthForm({ mode }: { mode: AuthMode }) {
   const [params] = useSearchParams();
   const requestPending = useRef(false);
   const automaticDemoStarted = useRef(false);
+  const [newPassword, setNewPassword] = useState('');
   const [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>(
       params.get('error')
@@ -57,6 +61,10 @@ function AuthForm({ mode }: { mode: AuthMode }) {
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (requestPending.current || mode === 'demo' || (mode === 'forgot' && !config.data?.passwordResetAvailable)) return;
+    if (mode === 'signup' || mode === 'reset') {
+      const issue = passwordError(newPassword);
+      if (issue) { toast.error(issue, { id: 'password-requirements', duration: 5000 }); e.currentTarget.querySelector<HTMLInputElement>('input[name="password"]')?.focus(); return; }
+    }
     requestPending.current = true;
     setBusy(true);
     setError(null);
@@ -204,12 +212,16 @@ function AuthForm({ mode }: { mode: AuthMode }) {
                     type="password"
                     required
                     autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                    minLength={mode === 'login' ? 1 : 10}
-                    maxLength={72}
+                    minLength={mode === 'login' ? 1 : 9}
+                    maxLength={mode === 'login' ? 128 : 72}
+                    onChange={e => setNewPassword(e.target.value)}
+                    aria-describedby={mode === 'login' ? undefined : 'password-requirements'}
+                    onInvalid={e => { if (mode !== 'login') { e.preventDefault(); toast.error(passwordRuleMessage, { id: 'password-requirements', duration: 5000 }); e.currentTarget.focus(); } }}
                     placeholder={
-                      mode === 'login' ? 'Enter your password' : 'At least 10 characters'
+                      mode === 'login' ? 'Enter your password' : 'Create a strong password'
                     }
                   />
+                  {mode !== 'login' && <small id="password-requirements" className="auth-password-rules">{passwordChecks(newPassword).map(rule => <span key={rule.label} className={rule.passed ? 'passed' : ''}>{rule.passed && <Check size={10} />}{rule.label}</span>)}</small>}
                 </label>
               )}
               {mode === 'signup' && (

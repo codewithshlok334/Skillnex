@@ -920,7 +920,7 @@ class PlatformIntegrationTest {
           .header("Origin", ORIGIN)
           .contentType("application/json")
           .content(
-            json.writeValueAsString(Map.of("token", token, "password", "Another-strong-password!"))
+            json.writeValueAsString(Map.of("token", token, "password", "Another-strong-password1!"))
           )
       )
       .andExpect(status().isOk());
@@ -931,7 +931,7 @@ class PlatformIntegrationTest {
           .header("Origin", ORIGIN)
           .contentType("application/json")
           .content(
-            json.writeValueAsString(Map.of("token", token, "password", "Another-strong-password!"))
+            json.writeValueAsString(Map.of("token", token, "password", "Another-strong-password1!"))
           )
       )
       .andExpect(status().isBadRequest());

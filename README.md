@@ -12,6 +12,8 @@
 
 **Career roadmap:** `/app/roadmap` provides a connected milestone map, a compact list for mobile, actionable learning steps and saved progress. Use **Download PDF** to take the complete plan with you. Exports are private to the roadmap owner.
 
+**Aptitude Arena:** `/app/aptitude` offers 500 quantitative, reasoning and verbal MCQs, untimed practice, configurable timed mocks and answer explanations. [Aptitude and achievements](docs/APTITUDE-AND-ACHIEVEMENTS.md) documents the question sources, profile stickers, CodeLab-only SkillCoins and streaks, and password rules for new signups. Existing account passwords and saved progress are retained.
+
 ### Craft Your Resume. Crack Your Interview
 
 A full-stack career and campus platform with a React / TypeScript frontend, a Spring Boot API, PostgreSQL migrations, real document processing, provider-independent AI services, and a populated local demo.

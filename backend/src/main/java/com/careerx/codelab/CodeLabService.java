@@ -17,11 +17,12 @@ import org.springframework.web.server.ResponseStatusException;
 public class CodeLabService {
   private final Store db;
   private final CodeRunner runner;
+  private final com.careerx.achievements.AchievementService achievements;
   private final TransactionTemplate independentTransaction;
   private final ThreadPoolExecutor pool=new ThreadPoolExecutor(2,2,0,TimeUnit.SECONDS,new ArrayBlockingQueue<>(16),
     runnable -> { Thread t=new Thread(runnable,"codelab-judge"); t.setDaemon(true); return t; },new ThreadPoolExecutor.AbortPolicy());
-  public CodeLabService(Store db,CodeRunner runner,PlatformTransactionManager transactions) {
-    this.db=db; this.runner=runner;
+  public CodeLabService(Store db,CodeRunner runner,PlatformTransactionManager transactions,com.careerx.achievements.AchievementService achievements) {
+    this.db=db; this.runner=runner; this.achievements=achievements;
     this.independentTransaction=new TransactionTemplate(transactions);
     this.independentTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
   }
@@ -65,11 +66,12 @@ public class CodeLabService {
       .map(row -> ((java.sql.Timestamp)row.get("first_solved")).toLocalDateTime().atOffset(ZoneOffset.UTC).atZoneSameInstant(zone).toLocalDate()).toList();
     Map<LocalDate,Integer> counts=new TreeMap<>();
     for(LocalDate day:solvedDates) if(day.getYear()==year && !day.isAfter(today)) counts.merge(day,1,Integer::sum);
-    return Map.of("year",year,"timeZone",zone.getId(),"today",today.toString(),
+    var result=new LinkedHashMap<String,Object>(Map.of("year",year,"timeZone",zone.getId(),"today",today.toString(),
       "firstYear",solvedDates.stream().mapToInt(LocalDate::getYear).min().orElse(today.getYear()),
       "totalSolved",solvedDates.size(),"solvedThisYear",counts.values().stream().mapToInt(Integer::intValue).sum(),
       "activeDays",counts.size(),"pendingSubmissions",pendingSubmissions(uid),
-      "days",counts.entrySet().stream().map(e -> Map.of("date",e.getKey().toString(),"count",e.getValue())).toList());
+      "days",counts.entrySet().stream().map(e -> Map.of("date",e.getKey().toString(),"count",e.getValue())).toList()));
+    result.put("coins",solvedDates.size());result.put("streak",CodingStreak.calculate(solvedDates,today));return result;
   }
   public Object progress(String uid) {
     return db.one("SELECT COUNT(*) AS total, SUM(CASE WHEN EXISTS (SELECT 1 FROM code_submissions s WHERE s.question_id=q.id AND s.user_id=? AND s.mode='SUBMIT' AND s.status='ACCEPTED') THEN 1 ELSE 0 END) AS solved FROM code_questions q",uid);
@@ -159,7 +161,18 @@ public class CodeLabService {
         cases.add(entry);
       }
       String message=overall.equals("ACCEPTED")?"All selected test cases passed.":overall.equals("RUNNER_ERROR")?"The sandbox could not complete judging. Please try again.":"Check the result below, update your code and try again.";
-      db.exec("UPDATE code_submissions SET status=?,passed=?,result_json=?,finished_at=CURRENT_TIMESTAMP WHERE id=?",overall,passed,db.text(Map.of("message",message,"cases",cases)),id);
+      final String verdict=overall; final int passedCount=passed;
+      independentTransaction.executeWithoutResult(ignored -> {
+        var owner=db.one("SELECT user_id,mode FROM code_submissions WHERE id=?",id);
+        String uid=(String)owner.get("user_id");
+        db.one("SELECT id FROM app_users WHERE id=? FOR UPDATE",uid);
+        int questionId=((Number)db.one("SELECT question_id FROM code_submissions WHERE id=?",id).get("question_id")).intValue();
+        boolean firstSolve=verdict.equals("ACCEPTED")&&owner.get("mode").equals("SUBMIT")&&!db.exists("SELECT 1 FROM code_submissions WHERE user_id=? AND question_id=? AND mode='SUBMIT' AND status='ACCEPTED' AND id<>?",uid,questionId,id);
+        db.exec("UPDATE code_submissions SET status=?,passed=?,finished_at=CURRENT_TIMESTAMP WHERE id=?",verdict,passedCount,id);
+        var awards=verdict.equals("ACCEPTED")&&owner.get("mode").equals("SUBMIT")?achievements.coding(uid):List.of();
+        int coins=db.count("SELECT COUNT(DISTINCT question_id) FROM code_submissions WHERE user_id=? AND mode='SUBMIT' AND status='ACCEPTED'",uid);
+        db.exec("UPDATE code_submissions SET result_json=? WHERE id=?",db.text(Map.of("message",message,"cases",cases,"awards",awards,"coinsEarned",firstSolve?1:0,"coinBalance",coins)),id);
+      });
     } catch(Exception ex) { if(ex instanceof InterruptedException) Thread.currentThread().interrupt(); fail(id,"The sandbox could not complete this run. Please try again; your code is still available."); }
   }
   private static String clip(String value) { return value.length()>8000?value.substring(0,8000)+"\n[output truncated]":value; }

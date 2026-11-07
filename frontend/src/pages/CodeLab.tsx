@@ -15,6 +15,8 @@ import { useEditorPreferences, useWorkspaceTheme } from '../hooks/useWorkspacePr
 import { useSession } from '../hooks/useSession';
 import { codeLabDraft } from '../utils/codeLabDraft';
 import { CodeLabPanels } from '../components/CodeLabPanels';
+import { celebrateAchievements } from '../components/Achievements';
+import type { EarnedAward } from '../components/Achievements';
 import '../codelab.css';
 import '../codelab-workspace.css';
 
@@ -32,7 +34,7 @@ type Detail = Question & {
   draft: null | { code: string; revision: number };
 };
 type TestResult = { number: number; sample: boolean; status: string; seconds: number; memoryKb: number; input?: string; expected?: string; output?: string; error?: string };
-type Submission = { id: string; question_id: number; language_id: Language; mode: 'RUN' | 'SUBMIT'; code?: string; status: string; passed: number; total: number; created_at: string; result?: { message: string; cases: TestResult[] } };
+type Submission = { id: string; question_id: number; language_id: Language; mode: 'RUN' | 'SUBMIT'; code?: string; status: string; passed: number; total: number; created_at: string; result?: { message: string; cases: TestResult[]; awards?: EarnedAward[]; coinsEarned?: number; coinBalance?: number } };
 const active = (status?: string) => status === 'QUEUED' || status === 'RUNNING';
 const verdict = (status: string, mode?: string) => status === 'ACCEPTED' ? mode === 'RUN' ? 'Samples passed' : 'Accepted' : ({ QUEUED: 'Queued', RUNNING: 'Running tests', WRONG_ANSWER: 'Wrong answer', COMPILATION_ERROR: 'Compilation error', TIME_LIMIT: 'Time limit exceeded', RUNTIME_ERROR: 'Runtime error', RUNNER_ERROR: 'Runner unavailable' }[status] || status);
 const difficultyClass = (value: string) => 'cl-difficulty ' + value.toLowerCase();
@@ -139,6 +141,9 @@ function ProblemWorkspace({ question: q, language }: { question: Detail; languag
       void cache.invalidateQueries({ queryKey: ['codelab-history', q.id, user.id] });
       void cache.invalidateQueries({ queryKey: ['codelab-activity', user.id] });
       if (run.data.mode === 'SUBMIT' && run.data.status === 'ACCEPTED') {
+        celebrateAchievements(user.id, run.data.result?.awards || [], { amount: run.data.result?.coinsEarned || 0, balance: run.data.result?.coinBalance || 0, eventId: run.data.id });
+        void cache.invalidateQueries({ queryKey: ['me'] });
+        void cache.invalidateQueries({ queryKey: ['notifications'] });
         cache.setQueriesData<Detail>({ queryKey: ['codelab-question', q.id], predicate: query => query.queryKey[3] === user.id }, old => old ? { ...old, solved: true } : old);
       }
     }

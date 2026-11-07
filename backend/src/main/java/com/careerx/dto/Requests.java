@@ -13,7 +13,7 @@ public final class Requests {
   public record Signup(
     @NotBlank @Size(max = 120) String name,
     @jakarta.validation.constraints.Email @NotBlank String email,
-    @Size(min = 10, max = 72) @NotBlank String password,
+    @com.careerx.security.StrongPassword String password,
     @Size(max = 200) String college,
     @Size(max = 100) String course,
     @Size(max = 100) String branch,
@@ -26,7 +26,7 @@ public final class Requests {
 
   public record Reset(
     @NotBlank String token,
-    @NotBlank @Size(min = 10, max = 72) String password
+    @com.careerx.security.StrongPassword String password
   ) {}
 
   public record Profile(

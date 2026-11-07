@@ -8,6 +8,7 @@ import { PageTitle, Card, SectionTitle, ErrorState } from '../components/Common'
 import { Button } from '../components/ui/button';
 import { initials } from '../utils/cn';
 import { CodingActivity } from '../components/CodingActivity';
+import { AchievementCollection } from '../components/Achievements';
 export function Profile() {
   const { user } = useSession(),
     client = useQueryClient();
@@ -38,6 +39,7 @@ export function Profile() {
         description="Keep your profile current for advice that meets you where you are."
       />
       <CodingActivity key={user.id} />
+      <AchievementCollection earnedIds={user.badges.map(b => b.id)} />
       <div className="profile-grid">
         <div className="stack">
           <Card className="profile-summary">
@@ -84,9 +86,9 @@ export function Profile() {
           </Card>
           <Card>
             <SectionTitle title="Your small collection of wins" />
-            {user.badges.length ? (
+            {user.badges.some(b => !b.id.startsWith('learning-')) ? (
               <div className="badge-grid">
-                {user.badges.map((b) => (
+                {user.badges.filter(b => !b.id.startsWith('learning-')).map((b) => (
                   <div key={b.id} title={b.description}>
                     <Award size={24} />
                     <strong>{b.name}</strong>

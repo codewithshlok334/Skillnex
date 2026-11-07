@@ -26,6 +26,7 @@ import {
   Code2,
   ArrowLeft,
   Video,
+  Brain,
 } from 'lucide-react';
 import { api, post, ApiError } from '../api/client';
 import { SessionContext, useConfig } from '../hooks/useSession';
@@ -54,6 +55,7 @@ const nav = [
   { label: 'Resume builder', path: '/app/builder', icon: PenLine, badge: 'FREE' },
   { label: 'Mock interviews', path: '/app/interviews', icon: Mic },
   { label: 'CodeLab', path: '/app/codelab', icon: Code2, badge: 'NEW' },
+  { label: 'Aptitude Arena', path: '/app/aptitude', icon: Brain, badge: 'NEW' },
   { label: 'Community', path: '/app/community', icon: MessagesSquare },
   { label: 'Career roadmap', path: '/app/roadmap', icon: Route },
   { label: 'Peer Practice', path: '/app/peer-practice', icon: Video, badge: 'NEW' },

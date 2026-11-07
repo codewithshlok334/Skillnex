@@ -22,6 +22,9 @@ import './styles.css';
 const CodeLab = lazy(() => import('./pages/CodeLab').then(module => ({ default: module.CodeLab })));
 const CodeLabRoom = lazy(() => import('./pages/CodeLab').then(module => ({ default: module.CodeLabRoom })));
 const PeerPractice = lazy(() => import('./pages/PeerPractice').then(module => ({ default: module.PeerPractice })));
+const AptitudeArena = lazy(() => import('./pages/AptitudeArena').then(module => ({ default: module.AptitudeArena })));
+const AptitudePractice = lazy(() => import('./pages/AptitudeArena').then(module => ({ default: module.AptitudePractice })));
+const AptitudeMock = lazy(() => import('./pages/AptitudeArena').then(module => ({ default: module.AptitudeMock })));
 applyTheme(readTheme());
 const client = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 15000, refetchOnWindowFocus: false } },
@@ -63,6 +66,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 <Route path="resumes" element={<Resumes />} />
                 <Route path="codelab" element={<Suspense fallback={<div role="status">Opening CodeLab…</div>}><CodeLab /></Suspense>} />
                 <Route path="codelab/:id" element={<Suspense fallback={<div role="status">Opening your coding workspace…</div>}><CodeLabRoom /></Suspense>} />
+                <Route path="aptitude" element={<Suspense fallback={<div role="status">Opening Aptitude Arena…</div>}><AptitudeArena /></Suspense>} />
+                <Route path="aptitude/practice/:id" element={<Suspense fallback={<div role="status">Opening your question…</div>}><AptitudePractice /></Suspense>} />
+                <Route path="aptitude/mock/:id" element={<Suspense fallback={<div role="status">Opening your mock test…</div>}><AptitudeMock /></Suspense>} />
                 <Route path="builder" element={<Builder />} />
                 <Route path="interviews" element={<Interviews />} />
                 <Route path="interviews/:id" element={<InterviewRoom />} />

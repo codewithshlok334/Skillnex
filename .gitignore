@@ -23,3 +23,5 @@ runner/.env
 .local-runtime.json
 .vercel/
 *.tsbuildinfo
+__pycache__/
+*.pyc
