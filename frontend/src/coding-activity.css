@@ -13,8 +13,8 @@
 .ca-stats span, .ca-caption, .ca-note { color: var(--muted); font-size: 12px; line-height: 1.7; }
 .ca-caption { margin: 18px 0; }
 .ca-calendar-scroll { overflow-x: auto; padding: 4px 3px 10px; scrollbar-width: thin; position: relative; }
-.ca-calendar { display: grid; grid-template-columns: 30px 1fr; grid-template-rows: 20px auto; column-gap: 8px; min-width: 760px; --ca-cell: 12px; --ca-gap: 3px; }
-.ca-month-labels, .ca-days { display: grid; grid-template-columns: repeat(var(--ca-weeks), minmax(var(--ca-cell), 1fr)); gap: var(--ca-gap); }
+.ca-calendar { display: grid; grid-template-columns: 28px 1fr; grid-template-rows: 20px auto; column-gap: 8px; width:min(100%,860px); min-width: 760px; --ca-cell: 11px; --ca-gap: 3px; }
+.ca-month-labels, .ca-days, .ca-month-dividers { display: grid; grid-template-columns: repeat(var(--ca-weeks), minmax(var(--ca-cell), 1fr)); gap: var(--ca-gap); }
 .ca-month-labels { grid-column: 2; font-size: 11px; color: var(--muted); }
 .ca-month-labels span { grid-row: 1; white-space: nowrap; }
 .ca-weekdays { grid-column: 1; grid-row: 2; display: grid; grid-template-rows: repeat(7, var(--ca-cell)); gap: var(--ca-gap); font-size: 10px; color: var(--muted); line-height: var(--ca-cell); }
@@ -22,7 +22,9 @@
 .ca-weekdays span:nth-child(2) { grid-row: 4; }
 .ca-weekdays span:nth-child(3) { grid-row: 6; }
 .ca-days { grid-column: 2; grid-row: 2; grid-template-rows: repeat(7, var(--ca-cell)); }
-.coding-activity .ca-day { display: block; height: 12px; min-width: 12px; padding: 0; margin: 0; border: 1px solid rgba(128,160,145,.15); border-radius: 2px; background: var(--ca-empty); box-shadow: none; cursor: pointer; }
+.coding-activity .ca-day { display: block; height: 11px; min-width: 11px; padding: 0; margin: 0; border: 1px solid rgba(128,160,145,.15); border-radius: 2px; background: var(--ca-empty); box-shadow: none; cursor: pointer; }
+.ca-month-dividers { grid-column:2; grid-row:2; pointer-events:none; z-index:1; }
+.ca-month-dividers > span { grid-row:1; border-left:1px solid var(--muted); opacity:.36; transform:translateX(-2px); }
 .coding-activity .ca-day[data-level="1"] { background: var(--ca-one); }
 .coding-activity .ca-day[data-level="2"] { background: var(--ca-two); }
 .coding-activity .ca-day[data-level="3"] { background: var(--ca-three); }
@@ -36,8 +38,9 @@
 .ca-legend span:first-child { margin-right: 4px; }
 .ca-legend span:last-child { margin-left: 4px; }
 .ca-legend .ca-day { cursor: default; }
-.ca-month-totals { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; margin-top: 24px; }
-.ca-month-totals > div { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--line); padding-top: 10px; }
+.ca-month-totals { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; margin-top: 18px; max-width:860px; }
+.ca-month-totals > div { display: flex; flex-direction: column; gap: 5px; border-top: 1px solid var(--line); padding-top: 9px; padding-left:8px; border-left:1px solid var(--line); }
+.ca-month-totals > div:first-child { border-left:0; padding-left:0; }
 .ca-month-totals span { color: var(--muted); font-size: 10px; }
 .ca-month-totals strong { color: var(--text); font-size: 14px; font-weight: 550; }
 .ca-note { margin: 18px 0 0; font-size: 10px; }

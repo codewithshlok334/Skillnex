@@ -1,0 +1,90 @@
+/* One appearance setting for public pages, accounts and every workspace tool. */
+.theme-toggle { display:inline-flex; align-items:center; justify-content:center; gap:7px; flex-shrink:0; min-width:36px; min-height:36px; padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--text); font:inherit; font-size:11px; cursor:pointer; white-space:nowrap; }
+.theme-toggle:hover { background:var(--soft); border-color:var(--muted); }
+.theme-toggle:focus-visible { outline:2px solid var(--focus-ring); outline-offset:3px; }
+.auth-top-actions { display:flex; align-items:center; justify-content:space-between; gap:15px; margin-bottom:20px; }
+.auth-top-actions .back-link { margin:0; }
+.campus-nav .theme-toggle { border-color:var(--campus-line); }
+@media(max-width:1100px) { .campus-nav .theme-toggle span { display:none; } .campus-nav .theme-toggle { padding:7px; } }
+@media(max-width:600px) { .topbar .theme-toggle span { display:none; } .topbar .theme-toggle { padding:7px; } }
+@media(max-width:390px) { .campus-nav { gap:6px; padding-inline:8px; } .campus-nav > div { gap:4px; } :root .campus-nav .brand.skillnex-brand { font-size:18px; gap:4px; } :root .campus-nav .skillnex-mark { width:26px; height:30px; } .campus-nav .campus-button.small { padding-inline:8px; } .campus-nav .campus-button.small > svg { display:none; } .campus-nav .campus-menu { padding:6px; } }
+
+:root[data-theme='light'] { --bg:#f4f7fa; --surface:#ffffff; --soft:#e9eff4; --text:#1b2c39; --muted:#536775; --line:#cbd6df; --card:var(--surface); color-scheme:light; }
+:root[data-theme='light'] body { background:var(--bg); color:var(--text); }
+:root[data-theme='light'] :is(input,textarea,select) { color-scheme:light; }
+:root[data-theme='light'] .skillnex-wordmark > span { color:#007e89; }
+:root[data-theme='light'] .assistant-widget-mark { color:var(--accent); background:var(--purple); }
+
+/* Public home: preserve the same artwork and coloured tools in the light palette. */
+:root[data-theme='light'] .campus-site { --campus-ink:#1b2c39; --campus-muted:#536775; --campus-cyan:#116b66; --campus-line:#cbd6df; color-scheme:light; background:#f4f7fa; }
+:root[data-theme='light'] .campus-nav { border-color:var(--campus-line); background:#ffffffed; box-shadow:0 8px 28px #263b4b0d; }
+:root[data-theme='light'] .campus-site .brand { color:var(--campus-ink); }
+:root[data-theme='light'] .campus-site :is(.campus-nav nav a,.campus-login,.campus-menu) { color:var(--campus-ink); }
+:root[data-theme='light'] .campus-site :is(.campus-nav nav a:hover,.campus-login:hover) { color:var(--campus-cyan); }
+:root[data-theme='light'] .campus-site :is(.campus-hero h1 span,.skillnex-headline span,h2>span,.campus-faq summary span) { color:#116b66; }
+:root[data-theme='light'] .campus-site :is(.campus-eyebrow,.campus-label,.campus-inline,.campus-tool-action,.campus-hero-bottom a) { color:#25615e; }
+:root[data-theme='light'] .campus-site :is(.campus-hero-description,.campus-hero-note,.campus-hero-bottom,.campus-benefits p,.campus-tool p,.campus-journey p,.campus-practice-copy>p,.campus-practice-copy ul,.campus-faq details p,.campus-final p,.campus-footer>span,.campus-footer small,.campus-preview-top,.campus-preview-top small,.campus-interview-preview p,.orbit-node small,.orbit-coordinate,.orbit-caption,.campus-tool-top>small) { color:var(--campus-muted); }
+:root[data-theme='light'] .campus-site :is(.campus-outline,.campus-tool,.campus-faq details,.orbit-node,.campus-interview-preview) { background:#ffffff; color:var(--campus-ink); border-color:var(--campus-line); box-shadow:0 4px 20px #263b4b07; }
+:root[data-theme='light'] .campus-site :is(.campus-tool:hover,.orbit-node:hover) { border-color:#4e9990; box-shadow:0 10px 25px #263b4b12; }
+:root[data-theme='light'] .campus-site :is(.campus-practice,.campus-final) { background:radial-gradient(ellipse at 90% 0%,#d8efea,transparent 65%),#edf4f5; border-color:var(--campus-line); }
+:root[data-theme='light'] .campus-site :is(.campus-tool-action,.campus-hero-bottom,.campus-benefits article) { border-color:var(--campus-line); }
+:root[data-theme='light'] .campus-site :is(.campus-tool-icon,.campus-step-icon,.orbit-node>span) { color:#116b66; background:#e7f4ef; border-color:#c4e0d9; }
+:root[data-theme='light'] .campus-site .campus-tool:nth-child(2) .campus-tool-icon,
+:root[data-theme='light'] .campus-site .campus-tool:nth-child(5) .campus-tool-icon { color:#315f9c; background:#eaf1fd; border-color:#cbd9ee; }
+:root[data-theme='light'] .campus-site .orbit-core { background:radial-gradient(circle,#e0f6f3,#c7e5e9); border-color:#9ccfcb; box-shadow:inset 0 1px #fff,0 18px 50px #217c8120; }
+:root[data-theme='light'] .campus-site .campus-avatar { background:linear-gradient(135deg,#d1eee5,#e6f3f5); color:#116b66; border-color:#a4d3c6; }
+:root[data-theme='light'] .campus-site :is(.campus-benefits article>span,.campus-practice-copy li svg,.campus-hero-bottom a span) { color:#116b66; }
+:root[data-theme='light'] .campus-site .campus-hero::before { background-image:linear-gradient(#284b6610 1px,transparent 1px),linear-gradient(90deg,#284b6610 1px,transparent 1px); }
+:root[data-theme='light'] .campus-site :is(a,button,summary):focus-visible { outline-color:#116b66; }
+@media(max-width:700px) { :root[data-theme='light'] .campus-nav nav { background:#ffffff; border-color:var(--campus-line); box-shadow:0 15px 35px #263b4b20; } }
+
+/* Account pages use the same selection as the workspace. */
+:root[data-theme='light'] .auth-story { background:radial-gradient(ellipse at 20% 90%,#c8e8df,transparent 65%),#eaf2f4; color:var(--text); }
+:root[data-theme='light'] .auth-story :is(.brand,.eyebrow,h1) { color:var(--text); }
+:root[data-theme='light'] .auth-story h1 em { color:#116b66; }
+:root[data-theme='light'] .auth-story :is(p,.auth-caption) { color:var(--muted); }
+
+/* Interactive graph panels previously kept a hard-coded dark background. */
+:root[data-theme='light'] .rm-page :is(.rm-explorer,.rm-hub,.rm-node,.rm-floating) { background:var(--surface); color:var(--text); border-color:var(--line); box-shadow:0 5px 18px #263b4b08; }
+:root[data-theme='light'] .rm-page .rm-node.is-complete { background:#e5f4ec; }
+:root[data-theme='light'] .rm-page .rm-cyan { --node-color:#137b82; }
+:root[data-theme='light'] .rm-page .rm-violet { --node-color:#7844b6; }
+:root[data-theme='light'] .rm-page .rm-amber { --node-color:#946019; }
+:root[data-theme='light'] .rm-page .rm-graph { background:radial-gradient(ellipse at 50% 48%,#d7edf055,transparent 48%),radial-gradient(circle,#7f96b540 1px,transparent 1px); background-size:auto,22px 22px; }
+:root[data-theme='light'] .rm-page .rm-graph-scroll { scrollbar-color:#a5b8ca #edf3f7; }
+:root[data-theme='light'] .rm-page :is(.rm-map-toolbar h2,.rm-hub>strong) { color:var(--text); }
+:root[data-theme='light'] .rm-page :is(.rm-map-toolbar>div>span,.rm-map-caption,.rm-map-legend,.rm-node-bottom,.rm-hub .rm-kicker,.rm-hub>span:last-of-type) { color:var(--muted); border-color:var(--line); }
+:root[data-theme='light'] .rm-page :is(.rm-hub button,.rm-hub-icon,.rm-welcome-center) { color:#116b66; }
+:root[data-theme='light'] .rm-page .rm-view-switch { background:var(--soft); border-color:var(--line); }
+:root[data-theme='light'] .rm-page .rm-view-switch button { color:var(--muted); }
+:root[data-theme='light'] .rm-page .rm-view-switch button[aria-pressed=true] { background:var(--surface); color:var(--text); }
+:root[data-theme='light'] .rm-page .rm-welcome-art { background:radial-gradient(ellipse at center,#cce9ed,#e9f1fa 68%); color:var(--text); }
+:root[data-theme='light'] .rm-page .rm-welcome-center { background:#e8f6f5; border-color:#8abbb6; }
+
+/* Video and portrait captions stay dark for legibility over camera images;
+   the surrounding interview controls and panels follow the chosen mode. */
+:root[data-theme='light'] .meeting-room { --meeting-text:var(--text); color:var(--text); background:var(--surface); border-color:var(--line); }
+:root[data-theme='light'] .meeting-room :is(.studio-candidate,.interview-answer-card,.interview-history,.meeting-toolbar) { background:var(--surface); color:var(--text); border-color:var(--line); }
+:root[data-theme='light'] .meeting-room :is(.studio-camera-view,.studio-camera-placeholder) { background:var(--soft); color:var(--text); }
+:root[data-theme='light'] .meeting-room .studio-camera-placeholder>svg { background:#d7e2ed; color:#416381; }
+:root[data-theme='light'] .meeting-room :is(.studio-camera-placeholder small,.studio-camera-controls small,.interview-input-disclosure,.interview-answer-footer,.dictation-language,.studio-code small,.recorded-answer .small,.interview-session-bar .muted,.interview-session-time>span) { color:var(--muted); }
+:root[data-theme='light'] .meeting-room :is(.interview-answer-card h2,.interview-history h2,.interview-answer-card label) { color:var(--text); }
+:root[data-theme='light'] .meeting-room :is(.interview-answer-card textarea,.interview-answer-card select) { background:var(--bg); border-color:var(--line); color:var(--text); }
+:root[data-theme='light'] .meeting-room .interview-session-bar .pill { background:var(--soft); border-color:var(--line); color:var(--muted); }
+:root[data-theme='light'] :is(.meeting-progression,.meeting-progression small,.live-interview-controls small,.meeting-person-choice) { color:var(--muted); }
+:root[data-theme='light'] .meeting-progression>span.current { background:#def2e7; border-color:#96c6b0; color:#205b43; }
+:root[data-theme='light'] .meeting-room .meeting-tool { color:var(--text); }
+:root[data-theme='light'] .meeting-room .meeting-tool:hover { background:var(--soft); }
+:root[data-theme='light'] .meeting-room .meeting-tool.enabled { color:#176847; background:#e0f3e9; }
+:root[data-theme='light'] .meeting-room .meeting-tool.selected { color:#28527c; background:#e5eefb; }
+:root[data-theme='light'] .meeting-voice-error { background:#fff3e9; border-color:#dbac87; color:#7d451f; }
+:root[data-theme='light'] .meeting-voice-ready { background:#e9f6f1; border-color:#9ec9b9; color:#245a49; }
+:root[data-theme='light'] .meeting-person-choice select { background:var(--surface); color:var(--text); border-color:var(--line); }
+:root[data-theme='light'] .live-mic-meter { background:#d5e3e7; }
+:root[data-theme='light'] .live-mic-meter>span { background:#168b79; }
+
+/* Status colours retain readable contrast on the light coding canvas. */
+:root[data-theme='light'] .codelab { --cl-green:#147b5c; --cl-blue:#315f9c; }
+:root[data-theme='light'] .codelab :is(.cl-difficulty.easy,.passed) { color:#14734f; }
+:root[data-theme='light'] .codelab .cl-difficulty.medium { color:#86580d; }
+:root[data-theme='light'] .codelab :is(.cl-difficulty.hard,.failed) { color:#aa344d; }

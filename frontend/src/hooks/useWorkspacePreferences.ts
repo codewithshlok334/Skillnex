@@ -42,7 +42,7 @@ export function useEditorPreferences() {
 }
 
 export function useWorkspaceTheme() {
-  const [theme, updateTheme] = useState<Theme>(() => document.documentElement.dataset.theme === 'light' ? 'light' : readTheme());
+  const [theme, updateTheme] = useState<Theme>(() => typeof document !== 'undefined' && document.documentElement.dataset.theme === 'light' ? 'light' : readTheme());
   useEffect(() => {
     const refresh = () => updateTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
     const fromStorage = (event: StorageEvent) => { if (event.key === 'careerx-graphite-theme' || event.key === null) applyTheme(readTheme()); };

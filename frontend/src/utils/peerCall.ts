@@ -1,13 +1,17 @@
-import { api } from '../api/client';
+import { api, ApiError } from '../api/client';
 import { recordingToWav } from './interviewVoice';
 
 export type PeerParticipant = { id: string; name: string; photo_url?: string; client_id: string | null; seen_ms: number; mic: boolean; camera: boolean; consent: boolean };
-export type PeerNote = { id: string; user_id: string; source: 'note' | 'transcript'; speaker_role: string; content: string; created_ms: number };
-export type PeerReport = { summary: string; coverage: string; strengths: string[]; mistakes: { quote: string; issue: string; improvement: string }[]; nextSteps: string[]; reviewedEntries: number; totalEntries: number };
+export type PeerNote = { id: string; user_id: string; source: 'note' | 'transcript'; speaker_role: string; content: string; created_ms: number; shared?: boolean };
+export type PeerMistake = { noteId?: string; quote: string; issue: string; improvement: string };
+export type PeerParticipantReport = { userId: string; name: string; roles: string[]; coverage: string; evidenceEntries: number; totalEvidenceEntries?: number; status?: 'reviewed' | 'insufficient_evidence'; overallScore: number | null; criteria: { key: string; label: string; score: number | null; reason: string }[]; strengths: string[]; mistakes: PeerMistake[]; improvements: string[]; nextSteps: string[] };
+export type PeerReviewV2 = { version: 2; summary: string; coverage: string; reviewedEntries: number; totalEntries: number; participants: PeerParticipantReport[] };
+export type PeerLegacyReport = { version?: 1; summary: string; coverage: string; reviewedEntries: number; totalEntries: number; strengths: string[]; mistakes: PeerMistake[]; nextSteps: string[] };
+export type PeerReport = PeerReviewV2 | PeerLegacyReport;
 export type PeerRoomData = { id: string; host_id: string; guest_id?: string; interviewer_id: string; title: string; status: 'WAITING' | 'ACTIVE' | 'COMPLETED'; epoch: number; revision: number; content_revision: number; created_ms: number; expires_ms: number; started_ms?: number; ended_ms?: number; serverTime: number; participants: PeerParticipant[]; notes?: PeerNote[]; feedback?: { author_id: string; clarity: number; strengths: string; improvements: string }[]; report?: PeerReport | null; signals?: { seq: number; kind: string; payload: any }[] };
 export type PeerConfig = { iceServers: RTCIceServer[]; relayAvailable: boolean; transcriptionAvailable: boolean; analysisAvailable: boolean };
-export type CallState = { mic: boolean; camera: boolean; connection: string; error: string; transcriptError: string; pending: number; local: MediaStream | null; remote: MediaStream | null };
-export const initialCall: CallState = { mic: false, camera: false, connection: 'joining', error: '', transcriptError: '', pending: 0, local: null, remote: null };
+export type CallState = { mic: boolean; camera: boolean; connection: string; error: string; transcriptError: string; pending: number; local: MediaStream | null; remote: MediaStream | null; micLevel: number; micIssue: string; microphones: { deviceId: string; label: string }[]; selectedMicrophone: string };
+export const initialCall: CallState = { mic: false, camera: false, connection: 'joining', error: '', transcriptError: '', pending: 0, local: null, remote: null, micLevel: 0, micIssue: '', microphones: [], selectedMicrophone: '' };
 
 /** A room owns its tracks and connection. Camera/mic are only requested by explicit controls. */
 export class PeerCall {
@@ -19,13 +23,22 @@ export class PeerCall {
   private epoch = -1;
   private cursor = 0;
   private candidates: RTCIceCandidateInit[] = [];
+  private lastDescription?: string;
   private audioSender?: RTCRtpSender;
   private videoSender?: RTCRtpSender;
   private offerStarted = false;
   private connectionTimer?: ReturnType<typeof setTimeout>;
-  private sendQueue = Promise.resolve();
+  private pendingSignals: { kind: string; payload: unknown }[] = [];
+  private attaching = Promise.resolve();
+  private recoveryTimer?: ReturnType<typeof setTimeout>;
+  private recoveryAttempts = 0;
+  private reconnecting = false;
+  private meterContext?: AudioContext;
+  private meterSource?: MediaStreamAudioSourceNode;
+  private meterTimer?: ReturnType<typeof setInterval>;
   private room?: PeerRoomData;
   private local = new MediaStream();
+  private replacingTracks = new Set<MediaStreamTrack>();
   private mediaBusy = new Set<string>();
   private recorder?: MediaRecorder;
   private recordTimer?: ReturnType<typeof setTimeout>;
@@ -37,6 +50,8 @@ export class PeerCall {
   private recordingRole?: string;
   private ended = false;
   private controller = new AbortController();
+  // Reconnecting signaling must not cancel a transcript that is still saving.
+  private transcriptController = new AbortController();
   constructor(private id: string, private uid: string, private config: PeerConfig,
     private onRoom: (room: PeerRoomData) => void, private onState: (state: CallState) => void) {}
   private emit(update: Partial<CallState>) { this.state = { ...this.state, ...update }; if (!this.disposed) this.onState(this.state); }
@@ -74,20 +89,24 @@ export class PeerCall {
         if (!this.ended) { this.ended = true; clearTimeout(this.connectionTimer); this.emit({ pending: this.uploads.size + (this.recorder ? 1 : 0) }); this.stopRecording(); this.stopTracks(); this.pc?.close(); this.emit({ connection: 'ended', mic: false, camera: false }); }
       } else {
         if (r.epoch !== this.epoch) await this.buildConnection(r);
+        if (this.disposed || controller !== this.controller) return;
         const other = r.participants.find(p => p.id !== this.uid);
         if (other?.client_id && other.seen_ms > r.serverTime - 15000) {
           if (this.uid === r.host_id && !this.offerStarted) {
-            this.offerStarted = true;
             const pc = this.pc!;
             await pc.setLocalDescription(await pc.createOffer());
-            await this.send('description', pc.localDescription!.toJSON());
+            if (!this.current(pc)) return;
+            this.offerStarted = true;
+            this.queueSignal('description', pc.localDescription!.toJSON());
           }
         } else if (this.pc?.connectionState !== 'connected') this.emit({ connection: 'waiting' });
         for (const signal of r.signals || []) {
           if (signal.seq <= this.cursor) continue;
           await this.receive(signal.kind, signal.payload);
+          if (this.disposed || controller !== this.controller) return;
           this.cursor = signal.seq;
         }
+        await this.flushSignals();
         this.updateRecording();
       }
       if (this.state.error.startsWith('Connection to SkillNex')) this.emit({ error: '' });
@@ -99,7 +118,8 @@ export class PeerCall {
   }
   private async buildConnection(r: PeerRoomData) {
     clearTimeout(this.connectionTimer);
-    this.pc?.close(); this.epoch = r.epoch; this.cursor = 0; this.candidates = []; this.offerStarted = false;
+    clearTimeout(this.recoveryTimer); this.recoveryTimer = undefined;
+    this.pc?.close(); this.epoch = r.epoch; this.cursor = 0; this.candidates = []; this.pendingSignals = []; this.offerStarted = false; this.lastDescription = undefined;
     const pc = new RTCPeerConnection({ iceServers: this.config.iceServers }); this.pc = pc;
     const remote = new MediaStream();
     this.emit({ remote, connection: 'connecting', error: '' });
@@ -113,17 +133,17 @@ export class PeerCall {
     }
     pc.ontrack = e => {
       if (this.pc !== pc || this.disposed || this.ended) return;
-      remote.addTrack(e.track);
+      if (!remote.getTracks().includes(e.track)) remote.addTrack(e.track);
       const update = () => { if (this.pc === pc && !this.disposed) this.emit({ remote }); };
       e.track.onunmute = update; e.track.onmute = update; e.track.onended = update;
       update();
     };
-    pc.onicecandidate = e => { if (e.candidate && this.pc === pc) void this.send('candidate', e.candidate.toJSON()).catch(() => {}); };
+    pc.onicecandidate = e => { if (e.candidate && this.current(pc)) this.queueSignal('candidate', e.candidate.toJSON()); };
     pc.onconnectionstatechange = () => {
       if (this.pc !== pc || this.disposed || this.ended) return;
       clearTimeout(this.connectionTimer);
       this.emit({ connection: pc.connectionState });
-      if (pc.connectionState === 'connected') this.emit({ error: '' });
+      if (pc.connectionState === 'connected') { clearTimeout(this.recoveryTimer); this.recoveryTimer = undefined; this.emit({ error: '' }); }
       else if (pc.connectionState === 'failed') this.connectionFailed();
       else if (pc.connectionState === 'connecting' || pc.connectionState === 'disconnected') {
         this.connectionTimer = setTimeout(() => { if (this.pc === pc && !this.disposed && !this.ended && pc.connectionState !== 'connected') this.connectionFailed(); }, 25000);
@@ -131,51 +151,84 @@ export class PeerCall {
     };
   }
   private connectionFailed() {
+    if (this.disposed || this.ended) return;
     this.emit({ connection: 'failed', error: this.config.relayAvailable
       ? 'Audio/video could not reach your partner. Press Reconnect on either device to retry the call.'
       : 'Audio/video cannot cross these networks yet because this site has no call relay configured. Reconnecting alone may not help.' });
+    // Prefer the host so both devices do not repeatedly reset the room epoch.
+    // A guest can recover when the host is suspended or cannot do so itself.
+    if (this.recoveryTimer || this.recoveryAttempts >= 2 || !this.room?.participants.some(p => p.id !== this.uid && p.client_id && p.seen_ms > this.room!.serverTime - 15000)) return;
+    const pc = this.pc;
+    this.recoveryTimer = setTimeout(() => {
+      this.recoveryTimer = undefined;
+      if (pc !== this.pc || this.disposed || this.ended || pc?.connectionState === 'connected') return;
+      this.recoveryAttempts++;
+      void this.reconnect(true);
+    }, this.uid === this.room.host_id ? 1500 : 7000);
   }
-  private async attachTracks(pc: RTCPeerConnection) {
-    for (const t of pc.getTransceivers()) {
-      const kind = t.receiver.track.kind;
-      if (kind !== 'audio' && kind !== 'video') continue;
-      t.direction = 'sendrecv';
-      t.sender.setStreams(this.local);
-      if (kind === 'audio') this.audioSender = t.sender; else this.videoSender = t.sender;
-      await t.sender.replaceTrack(this.local.getTracks().find(track => track.kind === kind && track.readyState === 'live') || null);
-    }
-  }
-  private send(kind: string, payload: unknown) {
-    const epoch = this.epoch;
-    const task = this.sendQueue.then(async () => {
-      if (this.disposed || epoch !== this.epoch || this.ended) return;
-      await this.request('signal', { clientId: this.clientId, epoch, kind, payload });
+  private current(pc: RTCPeerConnection) { return this.pc === pc && !this.disposed && !this.ended; }
+  private attachTracks(pc: RTCPeerConnection) {
+    // Media permission and remote SDP can resolve in either order. Serialize
+    // replacement and read the current track inside the queue, never before it.
+    const task = this.attaching.catch(() => {}).then(async () => {
+      if (!this.current(pc)) return;
+      for (const t of pc.getTransceivers()) {
+        if (!this.current(pc)) return;
+        const kind = t.receiver.track.kind;
+        if (kind !== 'audio' && kind !== 'video') continue;
+        t.direction = 'sendrecv';
+        t.sender.setStreams(this.local);
+        if (kind === 'audio') this.audioSender = t.sender; else this.videoSender = t.sender;
+        const track = this.local.getTracks().find(track => track.kind === kind && track.readyState === 'live') || null;
+        if (t.sender.track !== track) await t.sender.replaceTrack(track);
+      }
     });
-    this.sendQueue = task.catch(e => { if (!this.disposed && epoch === this.epoch) this.emit({ error: (e as Error).message }); });
+    this.attaching = task;
     return task;
+  }
+  private queueSignal(kind: string, payload: unknown) { this.pendingSignals.push({ kind, payload }); }
+  private async flushSignals() {
+    const pc = this.pc, epoch = this.epoch;
+    if (!pc) return;
+    // Keep the head until its request succeeds. A temporary API/network error
+    // must not permanently lose the offer, answer or a relay candidate.
+    while (this.pendingSignals.length && this.current(pc) && epoch === this.epoch) {
+      const signal = this.pendingSignals[0];
+      await this.request('signal', { clientId: this.clientId, epoch, ...signal });
+      if (this.current(pc) && epoch === this.epoch && this.pendingSignals[0] === signal) this.pendingSignals.shift();
+    }
   }
   private async receive(kind: string, payload: any) {
     const pc = this.pc; if (!pc) return;
     if (kind === 'description') {
-      await pc.setRemoteDescription(payload);
-      for (const c of this.candidates) await pc.addIceCandidate(c);
-      this.candidates = [];
+      // The server may have accepted a POST whose response was lost. Retrying
+      // signaling can therefore deliver the same SDP twice.
+      const key = JSON.stringify([payload.type, payload.sdp]);
+      if (this.lastDescription === key) return;
+      if (pc.remoteDescription?.type !== payload.type || pc.remoteDescription?.sdp !== payload.sdp) await pc.setRemoteDescription(payload);
+      if (!this.current(pc)) return;
+      while (this.candidates.length) { await pc.addIceCandidate(this.candidates[0]); if (!this.current(pc)) return; this.candidates.shift(); }
       if (payload.type === 'offer') {
         await this.attachTracks(pc);
+        if (!this.current(pc)) return;
         await pc.setLocalDescription(await pc.createAnswer());
-        await this.send('description', pc.localDescription!.toJSON());
+        if (this.current(pc)) this.queueSignal('description', pc.localDescription!.toJSON());
       }
+      if (this.current(pc)) this.lastDescription = key;
     } else if (pc.remoteDescription) await pc.addIceCandidate(payload);
     else this.candidates.push(payload);
   }
-  async reconnect() {
-    if (this.disposed || this.ended) return;
+  async reconnect(automatic = false) {
+    if (this.disposed || this.ended || this.reconnecting) return;
+    this.reconnecting = true;
+    if (!automatic) this.recoveryAttempts = 0;
+    clearTimeout(this.recoveryTimer); this.recoveryTimer = undefined;
     clearTimeout(this.connectionTimer); this.pc?.close();
     clearTimeout(this.timer); this.controller.abort(); this.controller = new AbortController();
     this.emit({ connection: 'connecting', remote: null, error: '' });
     // start() fetches fresh relay credentials before connecting.
     this.clientId = crypto.randomUUID(); this.epoch = -1; this.cursor = 0;
-    await this.start();
+    try { await this.start(); } finally { this.reconnecting = false; }
   }
   async toggle(kind: 'audio' | 'video') {
     if (this.disposed || this.ended || this.mediaBusy.has(kind)) return;
@@ -183,26 +236,112 @@ export class PeerCall {
     this.mediaBusy.add(kind);
     try {
       const tracks = kind === 'audio' ? this.local.getAudioTracks() : this.local.getVideoTracks();
-      const sender = kind === 'audio' ? this.audioSender : this.videoSender;
       if (tracks.length) {
-        if (kind === 'audio') { this.emit({ mic: false }); this.stopRecording(); }
-        await sender?.replaceTrack(null);
+        if (kind === 'audio') { this.emit({ mic: false, micIssue: '' }); this.stopRecording(); this.stopMeter(); }
+        // Stop capture even when the connection is changing or replaceTrack
+        // fails. The button must never leave a hidden microphone running.
         tracks.forEach(t => { t.stop(); this.local.removeTrack(t); });
+        this.refreshMedia();
+        if (this.pc) await this.attachTracks(this.pc);
       } else {
         if (!navigator.mediaDevices?.getUserMedia) throw new Error('Microphone and camera need HTTPS and a supported browser.');
-        const stream = await navigator.mediaDevices.getUserMedia(kind === 'audio' ? { audio: { echoCancellation: true, noiseSuppression: true }, video: false } : { video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }, audio: false });
+        const stream = await navigator.mediaDevices.getUserMedia(kind === 'audio' ? this.audioConstraints(this.state.selectedMicrophone) : { video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }, audio: false });
         if (this.disposed || this.ended) { stream.getTracks().forEach(t => t.stop()); return; }
-        const track = stream.getTracks()[0]; this.local.addTrack(track);
-        track.onended = () => { this.local.removeTrack(track); this.refreshMedia(); if (kind === 'audio') this.stopRecording(); };
-        await (kind === 'audio' ? this.audioSender : this.videoSender)?.replaceTrack(track);
+        const track = stream.getTracks().find(t => t.kind === kind);
+        if (!track) { stream.getTracks().forEach(t => t.stop()); throw new Error('The selected device did not provide a media track. Choose another input and retry.'); }
+        await this.useTrack(track);
+        if (kind === 'audio') await this.refreshMicrophones();
       }
       this.refreshMedia(); if (this.state.connection !== 'failed') this.emit({ error: '' }); this.updateRecording();
     } catch (e) {
-      const name = (e as DOMException).name;
-      this.emit({ error: name === 'NotAllowedError' ? `${kind === 'audio' ? 'Microphone' : 'Camera'} permission was denied. Allow it in your browser's site settings, then try again.` : name === 'NotFoundError' ? `No ${kind === 'audio' ? 'microphone' : 'camera'} was found. Check your device connection.` : (e as Error).message });
+      this.mediaError(e, kind);
     } finally { this.mediaBusy.delete(kind); }
   }
-  private refreshMedia() { this.emit({ mic: this.local.getAudioTracks().length > 0, camera: this.local.getVideoTracks().length > 0, local: new MediaStream(this.local.getTracks()) }); }
+  private audioConstraints(deviceId: string): MediaStreamConstraints {
+    return { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, ...(deviceId ? { deviceId: { exact: deviceId } } : {}) }, video: false };
+  }
+  private mediaError(error: unknown, kind: 'audio' | 'video') {
+    if (this.disposed || this.ended) return;
+    const name = (error as DOMException).name, device = kind === 'audio' ? 'Microphone' : 'Camera';
+    this.emit({ error: name === 'NotAllowedError' ? `${device} permission was denied. Allow it in your browser's site settings, then try again.`
+      : name === 'NotFoundError' || name === 'OverconstrainedError' ? `${device} was not found. Connect it or choose another input.`
+      : name === 'NotReadableError' ? `${device} could not open. Check whether another app is using it, then try again.` : (error as Error).message });
+  }
+  async refreshMicrophones() {
+    if (!navigator.mediaDevices?.enumerateDevices || this.disposed) return;
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      if (!this.disposed) this.emit({ microphones: devices.filter(d => d.kind === 'audioinput' && d.deviceId).map((d, i) => ({ deviceId: d.deviceId, label: d.label || `Microphone ${i + 1}` })) });
+    } catch { /* Device enumeration is optional; keep the working input. */ }
+  }
+  async setMicrophone(deviceId: string) {
+    if (this.disposed || this.ended || this.mediaBusy.has('audio')) return;
+    if (!this.state.mic) { this.emit({ selectedMicrophone: deviceId, micIssue: '' }); return; }
+    this.mediaBusy.add('audio');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia(this.audioConstraints(deviceId));
+      if (this.disposed || this.ended) { stream.getTracks().forEach(t => t.stop()); return; }
+      const track = stream.getAudioTracks()[0];
+      if (!track) { stream.getTracks().forEach(t => t.stop()); throw new Error('The selected microphone did not provide an audio track.'); }
+      await this.useTrack(track);
+      this.emit({ selectedMicrophone: deviceId, error: '' });
+      await this.refreshMicrophones(); this.updateRecording();
+    } catch (e) { this.mediaError(e, 'audio'); }
+    finally { this.mediaBusy.delete('audio'); }
+  }
+  private async useTrack(track: MediaStreamTrack) {
+    const old = this.local.getTracks().filter(t => t.kind === track.kind);
+    // The previous input stays alive until replacement succeeds so it can be
+    // restored on failure. It still belongs to this call during that await.
+    old.forEach(t => this.replacingTracks.add(t));
+    old.forEach(t => this.local.removeTrack(t)); this.local.addTrack(track);
+    try { if (this.pc) await this.attachTracks(this.pc); }
+    catch (e) {
+      this.local.removeTrack(track); track.stop();
+      if (this.disposed || this.ended) { old.forEach(t => t.stop()); return; }
+      old.forEach(t => this.local.addTrack(t));
+      if (this.pc) await this.attachTracks(this.pc).catch(() => {});
+      this.refreshMedia(); throw e;
+    } finally { old.forEach(t => this.replacingTracks.delete(t)); }
+    if (this.disposed || this.ended) { track.stop(); old.forEach(t => t.stop()); return; }
+    old.forEach(t => t.stop());
+    track.onended = () => {
+      if (!this.local.getTracks().includes(track)) return;
+      this.local.removeTrack(track); this.refreshMedia();
+      if (track.kind === 'audio') { this.stopRecording(); this.stopMeter(); this.emit({ micIssue: 'Your microphone disconnected. Choose an input, then turn the mic on again.' }); }
+    };
+    if (track.kind === 'audio') {
+      this.stopRecording();
+      const update = () => { if (this.local.getAudioTracks().includes(track)) this.emit({ micIssue: track.muted ? 'Your microphone is temporarily unavailable. Check its device mute switch or choose another input.' : '' }); };
+      track.onmute = update; track.onunmute = update; update();
+      this.emit({ selectedMicrophone: track.getSettings?.().deviceId || this.state.selectedMicrophone });
+      this.startMeter(track);
+    }
+    this.refreshMedia();
+  }
+  private refreshMedia() { this.emit({ mic: this.local.getAudioTracks().some(t => t.readyState === 'live' && t.enabled !== false), camera: this.local.getVideoTracks().some(t => t.readyState === 'live' && t.enabled !== false), local: new MediaStream(this.local.getTracks()) }); }
+  private startMeter(track: MediaStreamTrack) {
+    this.stopMeter();
+    if (typeof AudioContext === 'undefined') return;
+    try {
+      const ctx = new AudioContext(); this.meterContext = ctx;
+      void ctx.resume().catch(() => {});
+      const source = ctx.createMediaStreamSource(new MediaStream([track])); this.meterSource = source;
+      const analyser = ctx.createAnalyser(); analyser.fftSize = 256; source.connect(analyser);
+      const samples = new Float32Array(256);
+      this.meterTimer = setInterval(() => {
+        if (this.disposed || this.ended || track.readyState !== 'live') return;
+        analyser.getFloatTimeDomainData(samples);
+        const rms = Math.sqrt(samples.reduce((sum, value) => sum + value * value, 0) / samples.length);
+        this.emit({ micLevel: track.muted ? 0 : Math.min(1, rms * 8) });
+      }, 150);
+    } catch { this.stopMeter(); }
+  }
+  private stopMeter() {
+    clearInterval(this.meterTimer); this.meterSource?.disconnect(); this.meterSource = undefined;
+    void this.meterContext?.close().catch(() => {}); this.meterContext = undefined;
+    this.emit({ micLevel: 0 });
+  }
   async setConsent(enabled: boolean) {
     await this.request('consent', { enabled }); this.consent = enabled;
     this.emit({ transcriptError: '' });
@@ -256,7 +395,25 @@ export class PeerCall {
       const encoded = await recordingToWav(blob);
       if (this.disposed) return;
       const data = new FormData(); data.append('audio', encoded.wav, 'speech.wav'); data.append('clipId', clipId); data.append('speakerRole', speakerRole); data.append('language', 'en-IN');
-      await api(this.path('transcribe'), { method: 'POST', body: data, signal: this.controller.signal });
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (this.disposed) return;
+        const request = new AbortController();
+        const abort = () => request.abort();
+        this.transcriptController.signal.addEventListener('abort', abort, { once: true });
+        if (this.transcriptController.signal.aborted) abort();
+        const timeout = setTimeout(abort, 75000);
+        try {
+          // A stable clipId makes a retry safe if the server saved the text
+          // but the response was lost in a temporary network interruption.
+          await api(this.path('transcribe'), { method: 'POST', body: data, signal: request.signal });
+          break;
+        } catch (error) {
+          const retryable = error instanceof ApiError && (error.status === 0 || error.status >= 500);
+          if (attempt || !retryable || this.disposed) throw error;
+        } finally {
+          clearTimeout(timeout); this.transcriptController.signal.removeEventListener('abort', abort);
+        }
+      }
     } catch (e) { if (!this.disposed) this.emit({ transcriptError: 'A transcript segment could not be saved. Add missing answers in Notes. ' + (e as Error).message }); }
   }
   private stopRecording(save = true) {
@@ -265,14 +422,18 @@ export class PeerCall {
     if (this.recorder?.state === 'recording') this.recorder.stop();
   }
   async finish() {
-    clearTimeout(this.connectionTimer);
+    clearTimeout(this.connectionTimer); clearTimeout(this.recoveryTimer);
     this.ended = true; this.emit({ pending: this.uploads.size + (this.recorder ? 1 : 0) }); this.stopRecording(); this.stopTracks(); this.pc?.close();
     this.emit({ connection: 'ended', mic: false, camera: false });
     await this.recordingFinished; await Promise.all([...this.uploads]);
   }
-  private stopTracks() { this.local.getTracks().forEach(t => t.stop()); }
+  private stopTracks() {
+    this.stopMeter();
+    this.replacingTracks.forEach(t => t.stop()); this.replacingTracks.clear();
+    this.local.getTracks().forEach(t => { t.stop(); this.local.removeTrack(t); });
+  }
   destroy() {
-    this.disposed = true; clearTimeout(this.timer); clearTimeout(this.connectionTimer); this.stopRecording(false); this.stopTracks(); this.pc?.close(); void this.audioContext?.close(); this.controller.abort();
+    this.disposed = true; clearTimeout(this.timer); clearTimeout(this.connectionTimer); clearTimeout(this.recoveryTimer); this.stopRecording(false); this.stopTracks(); this.pc?.close(); void this.audioContext?.close(); this.controller.abort(); this.transcriptController.abort();
     void fetch('/api' + this.path('leave'), { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId: this.clientId }), keepalive: true }).catch(() => {});
   }
 }

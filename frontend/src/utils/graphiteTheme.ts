@@ -1,6 +1,6 @@
 export type Theme = 'dark' | 'light';
 
-// This palette starts dark even when the previous design saved a light preference.
+// Default to dark; keep the user's choice across pages and visits.
 const key = 'careerx-graphite-theme';
 
 export function readTheme(): Theme {
@@ -13,6 +13,7 @@ export function readTheme(): Theme {
 
 export function applyTheme(theme: Theme) {
   document.documentElement.dataset.theme = theme;
+  document.documentElement.style.colorScheme = theme;
   try {
     localStorage.setItem(key, theme);
   } catch {

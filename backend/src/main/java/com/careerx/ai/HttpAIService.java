@@ -285,12 +285,7 @@ public class HttpAIService implements AIService {
         if (n.path("reply").asText().length() > 12000) throw new IllegalArgumentException();
       }
       case "PeerReviewPrompt" -> {
-        text(n, "summary"); text(n, "coverage");
-        strings(n, "strengths"); strings(n, "nextSteps"); array(n, "mistakes");
-        if (n.path("strengths").size()>8 || n.path("nextSteps").size()>8 || n.path("mistakes").size()>12) throw new IllegalArgumentException();
-        for (var mistake : n.path("mistakes")) {
-          text(mistake,"quote"); text(mistake,"issue"); text(mistake,"improvement");
-        }
+        com.careerx.service.PeerReviewReport.validateShape(n);
       }
       case "InterviewEvaluationPrompt" -> {
         text(n, "summary");

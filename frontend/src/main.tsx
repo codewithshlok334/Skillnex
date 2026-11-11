@@ -17,6 +17,7 @@ import { Roadmap } from './pages/Roadmap';
 import { Profile } from './pages/Profile';
 import { Admin } from './pages/Admin';
 import { Assistant } from './pages/Assistant';
+import { AboutCreator } from './pages/AboutCreator';
 import { applyTheme, readTheme } from './utils/graphiteTheme';
 import './styles.css';
 const CodeLab = lazy(() => import('./pages/CodeLab').then(module => ({ default: module.CodeLab })));
@@ -77,6 +78,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 <Route path="roadmap" element={<Roadmap />} />
                 <Route path="peer-practice" element={<Suspense fallback={<div role="status">Opening Peer Practice…</div>}><PeerPractice /></Suspense>} />
                 <Route path="profile" element={<Profile />} />
+                <Route path="about-creator" element={<AboutCreator />} />
                 <Route path="admin" element={<Admin />} />
                 <Route path="assistant" element={<Assistant />} />
               </Route>
@@ -108,3 +110,4 @@ import './dimension.css';
 import './grey-theme.css';
 import './professional.css';
 import './career-ui.css';
+import './theme-modes.css';

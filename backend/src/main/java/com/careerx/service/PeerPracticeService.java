@@ -137,14 +137,14 @@ public class PeerPracticeService {
       throw conflict("The transcript upload window has ended. You can still add written notes.");
   }
   @Transactional
-  public void note(String id, String uid, String noteId, String source, String text, String role) {
+  public void note(String id, String uid, String noteId, String source, String text, String role, boolean shared) {
     var r = lock(id, uid);
     if (db.exists("SELECT 1 FROM peer_notes WHERE id=? AND room_id=? AND user_id=?", noteId, id, uid)) return;
     if ("transcript".equals(source)) requireTranscription(id, uid);
     if (text.isBlank()) return;
     if (db.count("SELECT COUNT(*) FROM peer_notes WHERE room_id=? AND user_id=?", id, uid) >= 180)
       throw conflict("This session has reached its notes limit.");
-    db.exec("INSERT INTO peer_notes(id,room_id,user_id,source,speaker_role,content,created_ms) VALUES(?,?,?,?,?,?,?)", noteId, id, uid, source, role, text.strip(), now());
+    db.exec("INSERT INTO peer_notes(id,room_id,user_id,source,speaker_role,content,created_ms,shared) VALUES(?,?,?,?,?,?,?,?)", noteId, id, uid, source, role, text.strip(), now(), shared);
     invalidateReports(id);
   }
   @Transactional
@@ -184,11 +184,32 @@ public class PeerPracticeService {
   @Transactional
   public void saveReport(String id, String uid, int revision, Object report) {
     var r = lock(id, uid);
+    if (!"COMPLETED".equals(r.get("status")) || r.get("guest_id") == null || r.get("started_ms") == null)
+      throw conflict("Analysis is available after a two-person interview ends.");
     if (((Number)r.get("content_revision")).intValue() != revision) throw conflict("New notes arrived while analysing. Generate the analysis again to include them.");
-    db.exec("DELETE FROM peer_reports WHERE room_id=? AND user_id=?", id, uid);
-    db.exec("INSERT INTO peer_reports(room_id,user_id,result_json,created_ms) VALUES(?,?,?,?)", id, uid, db.text(report), now());
+    // The same report contains only shared material and is available to both members.
+    db.exec("DELETE FROM peer_reports WHERE room_id=?", id);
+    String result = db.text(report); long created = now();
+    for (Object member : List.of(r.get("host_id"), r.get("guest_id")))
+      db.exec("INSERT INTO peer_reports(room_id,user_id,result_json,created_ms) VALUES(?,?,?,?)", id, member, result, created);
+  }
+  @Transactional
+  public Map<String,Object> analysisSnapshot(String id, String uid) {
+    var r = lock(id, uid);
+    if (!"COMPLETED".equals(r.get("status"))) throw conflict("Analysis is available only after the interview ends.");
+    if (r.get("guest_id") == null || r.get("started_ms") == null)
+      throw conflict("Start an interview with your partner before generating a report.");
+    var result = new HashMap<String,Object>();
+    result.put("room", r);
+    result.put("participants", db.list("SELECT m.user_id AS id,u.name FROM peer_members m JOIN app_users u ON u.id=m.user_id WHERE m.room_id=? ORDER BY m.user_id", id));
+    result.put("entries", db.list("SELECT id,user_id,source,speaker_role,content,created_ms,shared FROM peer_notes WHERE room_id=? AND (source='transcript' OR shared=TRUE) ORDER BY created_ms,id", id));
+    result.put("feedback", db.list("SELECT author_id,clarity,strengths,improvements FROM peer_feedback WHERE room_id=?", id));
+    var previous = db.list("SELECT result_json FROM peer_reports WHERE room_id=? AND user_id=?", id, uid);
+    result.put("report", previous.isEmpty() ? null : db.parse((String)previous.getFirst().get("result_json")));
+    return result;
   }
   public List<Map<String,Object>> notes(String id, String uid) {
-    return db.list("SELECT id,user_id,source,speaker_role,content,created_ms FROM peer_notes WHERE room_id=? AND (user_id=? OR source='transcript') ORDER BY created_ms,id", id, uid);
+    member(id, uid);
+    return db.list("SELECT id,user_id,source,speaker_role,content,created_ms,shared FROM peer_notes WHERE room_id=? AND (user_id=? OR source='transcript' OR shared=TRUE) ORDER BY created_ms,id", id, uid);
   }
 }

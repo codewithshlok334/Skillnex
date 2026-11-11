@@ -17,13 +17,14 @@ Flyway migrations are the source of truth:
 - `backend/src/main/resources/db/migration/V1__careerx.sql`
 - `backend/src/main/resources/db/migration/V2__operational_indexes.sql`
 
-Keep the complete migration history through V12. V9 adds CodeLab, V10 adds Peer Practice, V11 adds Aptitude Arena, and V12 adds learning achievement definitions and saved mock-award results. These updates retain existing identities and records.
+Keep the complete migration history through V13. V9 adds CodeLab, V10 adds Peer Practice, V11 adds Aptitude Arena, and V12 adds learning achievement definitions and saved mock-award results. V13 adds `peer_notes.shared` with a default of `FALSE`, preserving the privacy of existing written notes. These updates retain existing identities and records.
 
 | Aggregate    | Tables and relationships                                                                                                   |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------- |
 | Identity     | `app_users` → one `profiles`; role constrained to STUDENT/FACULTY/ADMIN; single-use hashed `password_resets`               |
 | Resume       | user → many `resumes` → many `resume_analyses`; six `resume_templates`                                 |
 | Interview    | user → `interviews` → ordered `interview_questions` → at most one `interview_answers`; one `interview_reports` per session |
+| Peer Practice | `peer_rooms` → two `peer_members`, epoch-scoped `peer_signals`, authored `peer_notes`, participant `peer_feedback` and `peer_reports` |
 | Community    | user → `questions` → `answers` and `comments`; category FK; verifier FK to user                                            |
 | Reputation   | unique `votes(user_id, answer_id)`; `badges` / unique `user_badges`; cached reputation in profile                          |
 | Moderation   | unique report per reporter + target; content is soft-hidden on removal                                                     |
@@ -53,6 +54,36 @@ The workflow is SCHEDULED → ACTIVE → COMPLETED, with cancellation available 
 Answer submission is a separate committed request from the next AI question. A failed follow-up therefore preserves the answer. Report generation is retryable and idempotent through a unique interview-report relationship. It requires at least one submitted answer and a completed session. The AI sees the target, difficulty, latest resume, and entire transcript for adaptive follow-up questions.
 
 The timer is advisory: exceeding the requested duration does not discard an unfinished answer. Voice uses browser speech APIs when available; text remains the dependable fallback.
+
+## Peer Practice consistency
+
+Peer rooms are invite-only and limited to two authenticated members. Every room
+read and mutation checks membership. Connecting a new client advances the room
+epoch, so stale signaling from another tab or an earlier connection cannot be
+applied. Browser audio/video uses WebRTC with server-provided ICE settings;
+signaling is polled through the authenticated API. Failed signaling requests retain
+their message for retry, duplicate descriptions are ignored, and device replacement
+is serialized with negotiation. Media reconnection obtains fresh relay credentials
+without discarding live capture tracks or aborting an in-flight transcript upload.
+
+Transcription is opt-in per participant, captures only that participant's microphone,
+and saves text rather than audio. Each clip has a stable ID for retry deduplication.
+Private written notes are excluded from the shared review; users can explicitly
+share an answer when saving a new note. V13 does not share existing notes.
+
+A report requires a started, completed two-person interview. Both participants
+receive the same V2 document with separate assessments. The server reserves equal
+text context per speaker, validates model participant IDs and exact own-entry
+quotes, bounds criterion scores, and computes overall points from scored criteria.
+Insufficient evidence produces null scores rather than zero. New or removed notes
+and updated peer feedback invalidate cached reports. Saving checks the content
+revision again, preventing an analysis started against older evidence from replacing
+the current report. Existing personal reviews remain readable until refreshed.
+
+The browser waits for its own final uploads before automatically requesting review.
+Late entries from either participant invalidate the saved review and can trigger a
+fresh one. TURN availability and browser sound/device permissions remain external
+requirements. [Peer Practice details](PEER-PRACTICE.md) describe the user flow and limits.
 
 ## Reputation integrity
 

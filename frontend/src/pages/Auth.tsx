@@ -10,6 +10,7 @@ import { ErrorState, Loading } from '../components/Common';
 import { OrbitArt } from './Dashboard';
 import { toast } from 'sonner';
 import { passwordChecks, passwordError, passwordRuleMessage } from '../utils/passwordPolicy';
+import { ThemeToggle } from '../components/ThemeToggle';
 import '../password-rules.css';
 type AuthMode = 'login' | 'signup' | 'forgot' | 'reset' | 'demo';
 
@@ -124,10 +125,13 @@ function AuthForm({ mode }: { mode: AuthMode }) {
         </span>
       </div>
       <div className="auth-form-wrap">
+        <div className="auth-top-actions">
         <Link to="/" className="back-link">
           <ArrowLeft size={15} />
           Back to SkillNex
         </Link>
+        <ThemeToggle />
+        </div>
         <div className="auth-form">
           <span className="eyebrow">LET’S MAKE THINGS HAPPEN</span>
           <h2>{title}</h2>

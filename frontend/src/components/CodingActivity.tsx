@@ -33,6 +33,7 @@ export function CodingActivity() {
   const focusDate = days.some(day => day.date === selected && !day.future) ? selected : days.filter(day => !day.future).at(-1)?.date;
   const selectedDay = days.find(day => day.date === focusDate);
   const monthTotals = months.map((_, index) => days.filter(day => Number(day.date.slice(5, 7)) === index + 1).reduce((total, day) => total + day.count, 0));
+  const monthWeeks = months.map((_, index) => (days.find(day => day.date === `${year}-${String(index + 1).padStart(2, '0')}-01`)?.week ?? 0) + 1);
   useEffect(() => {
     if (!data || !scroll.current) return;
     const today = scroll.current.querySelector<HTMLElement>('[data-today="true"]');
@@ -59,13 +60,14 @@ export function CodingActivity() {
       <p className="ca-caption">{data.solvedThisYear ? `Your first accepted solutions in ${year}.` : `Your first accepted solution will light up this calendar.`} Each question counts once, after all Submit tests pass.</p>
       <div className="ca-calendar-scroll" ref={scroll} role="group" aria-label={`Daily problems solved in ${year}. Use arrow keys to move between days.`}>
         <div className="ca-calendar" style={{ '--ca-weeks': (days.at(-1)?.week ?? 52) + 1 } as CSSProperties}>
-          <div className="ca-month-labels" aria-hidden="true">{months.map((month, index) => <span key={month} style={{ gridColumn: (days.find(day => day.date === `${year}-${String(index + 1).padStart(2, '0')}-01`)?.week ?? 0) + 1 }}>{month}</span>)}</div>
+          <div className="ca-month-labels" aria-hidden="true">{months.map((month, index) => <span key={month} style={{ gridColumn: monthWeeks[index] }}>{month}</span>)}</div>
           <div className="ca-weekdays" aria-hidden="true"><span>Mon</span><span>Wed</span><span>Fri</span></div>
           <div className="ca-days">{days.map((day, index) => <button key={day.date} type="button" className="ca-day" data-level={activityLevel(day.count)} data-date={day.date} data-today={day.date === data.today} data-future={day.future}
             style={{ gridColumn: day.week + 1, gridRow: day.weekday + 1 }} disabled={day.future} tabIndex={day.date === focusDate ? 0 : -1}
             aria-label={`${activityDate(day.date)}: ${day.count} ${day.count === 1 ? 'problem' : 'problems'} solved${day.future ? ' (future date)' : ''}`} aria-pressed={day.date === selected}
             title={`${activityDate(day.date)} · ${day.count} ${day.count === 1 ? 'problem' : 'problems'} solved`}
             onClick={() => setSelected(day.date)} onFocus={() => setSelected(day.date)} onKeyDown={event => moveDay(event, index)} />)}</div>
+          <div className="ca-month-dividers" aria-hidden="true">{monthWeeks.slice(1).map((week, index) => <span key={months[index + 1]} style={{ gridColumn: week }} />)}</div>
         </div>
       </div>
       <div className="ca-calendar-footer"><p aria-live="polite">{selectedDay && <><strong>{activityDate(selectedDay.date)}</strong><span> · {selectedDay.count} {selectedDay.count === 1 ? 'problem' : 'problems'} solved</span></>}</p><div className="ca-legend" aria-label="Colour scale: 0, 1, 2–3, 4–5, 6 or more problems"><span>Less</span>{[0, 1, 2, 3, 4].map(level => <i key={level} className="ca-day" data-level={level} aria-hidden="true" />)}<span>More</span></div></div>

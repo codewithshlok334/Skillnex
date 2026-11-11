@@ -25,6 +25,7 @@ import org.springframework.test.web.servlet.*;
 @SpringBootTest(properties={"app.peer.turn-urls=turn:relay.example:80,turns:relay.example:443?transport=tcp", "app.peer.turn-secret=test-relay-secret"}) @AutoConfigureMockMvc @ActiveProfiles("test")
 class PeerPracticeIntegrationTest {
   @Autowired MockMvc mvc; @Autowired ObjectMapper json; @Autowired Store db;
+  @Autowired com.careerx.service.PeerPracticeService rooms;
   @MockitoBean AIService ai;
   static final String ORIGIN="http://localhost:5173";
   record User(String id,Cookie cookie) {}
@@ -100,24 +101,112 @@ class PeerPracticeIntegrationTest {
     action(guest,id,"end");send(guest,path+"/connect",Map.of("clientId",gc)).andExpect(status().isConflict());
     send(outsider,path+"/join",Map.of()).andExpect(status().isConflict());
   }
-  @Test void analysisIsEndOnlyPrivateEvidenceBasedAndInvalidatedByNewNotes()throws Exception{
-    var h=user();var g=user();String id=create(h),path="/rooms/"+id;ok(g,path+"/join",Map.of());connect(h,id);connect(g,id);action(h,id,"start");
-    String text="I said a binary search works on any unsorted array. I described checking the middle and discarding half, but did not establish the sorted-order invariant.";
-    String nid=UUID.randomUUID().toString();ok(h,path+"/notes",Map.of("id",nid,"text",text));
-    assertEquals(0,getRoom(g,id).path("notes").size());
-    send(h,path+"/analysis",Map.of()).andExpect(status().isConflict());verify(ai,never()).generate(eq("PeerReviewPrompt"),anyString());
-    action(h,id,"end");
-    send(g,path+"/analysis",Map.of()).andExpect(status().isUnprocessableEntity());
-    when(ai.generate(eq("PeerReviewPrompt"),anyString())).thenReturn(json.readTree("{\"summary\":\"Review of your saved answer\",\"coverage\":\"One written answer only, no video assessment\",\"strengths\":[\"Explained halving\"],\"mistakes\":[{\"quote\":\"binary search works on any unsorted array\",\"issue\":\"Needs a sorted range\",\"improvement\":\"Explain the ordering invariant first\"}],\"nextSteps\":[\"Practise a sorted-array example\"]}"));
-    var report=ok(h,path+"/analysis",Map.of());assertEquals(1,report.path("reviewedEntries").asInt());
-    ok(h,path+"/analysis",Map.of());verify(ai,times(1)).generate(eq("PeerReviewPrompt"),anyString());
-    assertTrue(getRoom(g,id).path("report").isNull());
-    ok(g,path+"/feedback",Map.of("clarity",3,"strengths","Explained the middle element clearly","improvements","Mention the sorted array requirement"));
-    assertTrue(getRoom(h,id).path("report").isNull());
-    when(ai.generate(eq("PeerReviewPrompt"),anyString())).thenReturn(json.readTree("{\"summary\":\"Unsupported review\",\"coverage\":\"limited\",\"strengths\":[],\"mistakes\":[{\"quote\":\"invented quote\",\"issue\":\"invented\",\"improvement\":\"invented\"}],\"nextSteps\":[]}"));
-    send(h,path+"/analysis",Map.of()).andExpect(status().isBadGateway());assertEquals(0,db.count("SELECT COUNT(*) FROM peer_reports WHERE room_id=?",id));
-    mvc.perform(delete("/api/peer"+path+"/notes/"+nid).cookie(g.cookie).header("Origin",ORIGIN)).andExpect(status().isOk());
+  record Session(User host,User guest,String id,String path) {}
+  Session session() throws Exception {
+    var h=user();var g=user();String id=create(h),path="/rooms/"+id;
+    ok(g,path+"/join",Map.of());connect(h,id);connect(g,id);action(h,id,"start");
+    return new Session(h,g,id,path);
+  }
+  String shared(User u,String path,String text)throws Exception {
+    String id=UUID.randomUUID().toString();
+    ok(u,path+"/notes",Map.of("id",id,"text",text,"shareWithPartner",true));return id;
+  }
+  static final String HOST_TEXT="I explained that binary search works on any unsorted array. I described checking the middle and discarding half, but did not establish the sorted-order invariant.";
+  static final String GUEST_TEXT="Before answering I would ask if the array is sorted. I would explain the range invariant, show a small example and compare the logarithmic search with a linear scan.";
+  com.fasterxml.jackson.databind.node.ObjectNode generated(Session s,String note) {
+    var n=json.createObjectNode().put("summary","A review of the shared practice conversation").put("coverage","Shared text only; no video or unsaved speech assessed.");
+    var people=n.putArray("participants");
+    for(var u:List.of(s.host,s.guest)) {
+      var p=people.addObject().put("userId",u.id).put("coverage","Only the saved text for this person was reviewed.");
+      var criteria=p.putArray("criteria");
+      for(String key:List.of("clarity","structure","reasoning","interviewing"))criteria.addObject().put("key",key).put("score",80).put("reason","Practice guidance based on the shared explanation.");
+      p.putArray("strengths").add("Explained the search approach.");p.putArray("improvements").add("State the precondition first.");p.putArray("nextSteps").add("Practise with a sorted array.");
+      var mistakes=p.putArray("mistakes");
+      if(u.id.equals(s.host.id) && note!=null)mistakes.addObject().put("noteId",note).put("quote","binary search works on any unsorted array").put("issue","Requires ordering").put("improvement","Establish sorted order first.");
+    }
+    return n;
+  }
+  @Test void bothReportsAreEndOnlyShareOptInAndNeverSendPrivateNotes()throws Exception {
+    var s=session();var outsider=user();
+    String privateId=UUID.randomUUID().toString();
+    ok(s.host,s.path+"/notes",Map.of("id",privateId,"text","PRIVATE_SENTINEL_This is a personal observation that must never reach the shared AI report or the partner."));
+    assertEquals(0,getRoom(s.guest,s.id).path("notes").size());
+    String nid=shared(s.host,s.path,HOST_TEXT);shared(s.guest,s.path,GUEST_TEXT);
+    assertEquals(2,getRoom(s.guest,s.id).path("notes").size());
+    assertTrue(getRoom(s.guest,s.id).path("notes").get(0).path("shared").asBoolean());
+    send(s.host,s.path+"/analysis",Map.of()).andExpect(status().isConflict());
+    verify(ai,never()).generate(eq("PeerReviewPrompt"),anyString());
+    action(s.host,s.id,"end");
+    send(outsider,s.path+"/analysis",Map.of()).andExpect(status().isNotFound());
+    when(ai.generate(eq("PeerReviewPrompt"),anyString())).thenReturn(generated(s,nid));
+    var report=ok(s.guest,s.path+"/analysis",Map.of());
+    assertEquals(2,report.path("version").asInt());assertEquals(2,report.path("participants").size());
+    assertEquals(2,report.path("reviewedEntries").asInt());assertEquals(2,report.path("totalEntries").asInt());
+    assertEquals(s.host.id,report.path("participants").get(0).path("userId").asText());
+    assertEquals(80,report.path("participants").get(0).path("overallScore").asInt());
+    assertEquals(report,ok(s.host,s.path+"/analysis",Map.of()));
+    assertEquals(report,getRoom(s.host,s.id).path("report"));assertEquals(report,getRoom(s.guest,s.id).path("report"));
+    var prompt=org.mockito.ArgumentCaptor.forClass(String.class);
+    verify(ai,times(1)).generate(eq("PeerReviewPrompt"),prompt.capture());
+    assertFalse(prompt.getValue().contains("PRIVATE_SENTINEL"));assertTrue(prompt.getValue().contains(HOST_TEXT));
+    assertEquals(2,db.count("SELECT COUNT(*) FROM peer_reports WHERE room_id=?",s.id));
+    mvc.perform(delete("/api/peer"+s.path+"/notes/"+nid).cookie(s.guest.cookie).header("Origin",ORIGIN)).andExpect(status().isOk());
     assertEquals(1,db.count("SELECT COUNT(*) FROM peer_notes WHERE id=?",nid));
+    shared(s.guest,s.path,"My final answer used a sorted array and kept the search interval inclusive, checking the middle until the range was empty.");
+    assertTrue(getRoom(s.host,s.id).path("report").isNull());assertTrue(getRoom(s.guest,s.id).path("report").isNull());
+  }
+  @Test void absentEvidenceIsNotZeroOrAnInventedAssessment()throws Exception {
+    var s=session();
+    ok(s.host,s.path+"/notes",Map.of("id",UUID.randomUUID().toString(),"text",HOST_TEXT));
+    action(s.host,s.id,"end");
+    var empty=ok(s.host,s.path+"/analysis",Map.of());
+    assertEquals(0,empty.path("reviewedEntries").asInt());
+    for(var p:empty.path("participants")){assertTrue(p.path("overallScore").isNull());assertTrue(p.path("mistakes").isEmpty());}
+    verify(ai,never()).generate(eq("PeerReviewPrompt"),anyString());
+    String note=shared(s.host,s.path,HOST_TEXT);
+    when(ai.generate(eq("PeerReviewPrompt"),anyString())).thenReturn(generated(s,note));
+    var report=ok(s.guest,s.path+"/analysis",Map.of());
+    var silent=report.path("participants").get(1);
+    assertEquals("insufficient_evidence",silent.path("status").asText());
+    assertTrue(silent.path("overallScore").isNull());assertTrue(silent.path("strengths").isEmpty());
+    assertEquals(0,silent.path("evidenceEntries").asInt());
+    for(var c:silent.path("criteria"))assertTrue(c.path("score").isNull());
+  }
+  @Test void reportRejectsPartnerQuoteUnknownIdentityAndInvalidScores()throws Exception {
+    var s=session();String hn=shared(s.host,s.path,HOST_TEXT),gn=shared(s.guest,s.path,GUEST_TEXT);action(s.host,s.id,"end");
+    var wrongQuote=generated(s,hn);
+    ((com.fasterxml.jackson.databind.node.ObjectNode)wrongQuote.path("participants").get(0).path("mistakes").get(0)).put("noteId",gn).put("quote","Before answering");
+    when(ai.generate(eq("PeerReviewPrompt"),anyString())).thenReturn(wrongQuote);
+    send(s.host,s.path+"/analysis",Map.of()).andExpect(status().isBadGateway());
+    var wrongIdentity=generated(s,hn);((com.fasterxml.jackson.databind.node.ObjectNode)wrongIdentity.path("participants").get(1)).put("userId",UUID.randomUUID().toString());
+    when(ai.generate(eq("PeerReviewPrompt"),anyString())).thenReturn(wrongIdentity);
+    send(s.host,s.path+"/analysis",Map.of()).andExpect(status().isBadGateway());
+    var wrongScore=generated(s,hn);((com.fasterxml.jackson.databind.node.ObjectNode)wrongScore.path("participants").get(0).path("criteria").get(0)).put("score",101);
+    when(ai.generate(eq("PeerReviewPrompt"),anyString())).thenReturn(wrongScore);
+    send(s.host,s.path+"/analysis",Map.of()).andExpect(status().isBadGateway());
+    assertEquals(0,db.count("SELECT COUNT(*) FROM peer_reports WHERE room_id=?",s.id));
+  }
+  @Test void lateConversationDuringAnalysisCannotCacheAnOutdatedReport()throws Exception {
+    var s=session();String hn=shared(s.host,s.path,HOST_TEXT);shared(s.guest,s.path,GUEST_TEXT);action(s.host,s.id,"end");
+    when(ai.generate(eq("PeerReviewPrompt"),anyString())).thenAnswer(invocation->{
+      rooms.note(s.id,s.guest.id,UUID.randomUUID().toString(),"note","Another shared answer arrived while the report was generating.","candidate",true);
+      return generated(s,hn);
+    });
+    send(s.host,s.path+"/analysis",Map.of()).andExpect(status().isConflict());
+    assertEquals(0,db.count("SELECT COUNT(*) FROM peer_reports WHERE room_id=?",s.id));
+    when(ai.generate(eq("PeerReviewPrompt"),anyString())).thenReturn(generated(s,hn));
+    assertEquals(3,ok(s.guest,s.path+"/analysis",Map.of()).path("reviewedEntries").asInt());
+  }
+  @Test void providerFailureIsRetryableAndLegacyPrivateReportIsNeverShared()throws Exception {
+    var s=session();String hn=shared(s.host,s.path,HOST_TEXT);shared(s.guest,s.path,GUEST_TEXT);action(s.host,s.id,"end");
+    db.exec("INSERT INTO peer_reports(room_id,user_id,result_json,created_ms) VALUES(?,?,?,?)",s.id,s.host.id,"{\"summary\":\"PRIVATE_LEGACY_REPORT\"}",System.currentTimeMillis());
+    assertTrue(getRoom(s.guest,s.id).path("report").isNull());
+    when(ai.generate(eq("PeerReviewPrompt"),anyString())).thenThrow(new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,"Provider unavailable"));
+    send(s.host,s.path+"/analysis",Map.of()).andExpect(status().isServiceUnavailable());
+    assertTrue(getRoom(s.guest,s.id).path("report").isNull());
+    when(ai.generate(eq("PeerReviewPrompt"),anyString())).thenReturn(generated(s,hn));
+    var report=ok(s.host,s.path+"/analysis",Map.of());assertFalse(report.toString().contains("PRIVATE_LEGACY_REPORT"));
+    assertEquals(report,getRoom(s.guest,s.id).path("report"));
   }
   @Test void transcriptionRequiresExplicitConsentAndValidAudioAndIsIdempotent()throws Exception{
     var h=user();var g=user();String id=create(h),path="/rooms/"+id;ok(g,path+"/join",Map.of());connect(h,id);connect(g,id);action(h,id,"start");

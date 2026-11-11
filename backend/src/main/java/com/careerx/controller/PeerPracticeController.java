@@ -4,6 +4,7 @@ import com.careerx.ai.*;
 import com.careerx.repository.Store;
 import com.careerx.security.RateLimit;
 import com.careerx.service.PeerPracticeService;
+import com.careerx.service.PeerReviewReport;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -43,7 +44,7 @@ public class PeerPracticeController {
   public record Signal(@NotBlank @Pattern(regexp="[a-fA-F0-9-]{36}") String clientId, @Min(0) int epoch, @Pattern(regexp="description|candidate") @NotNull String kind, @NotNull JsonNode payload) {}
   public record Action(@Pattern(regexp="start|swap|end") @NotNull String action, @Min(0) int revision) {}
   public record Consent(boolean enabled) {}
-  public record Note(@Pattern(regexp="[a-fA-F0-9-]{36}") @NotNull String id, @NotBlank @Size(max=5000) String text) {}
+  public record Note(@Pattern(regexp="[a-fA-F0-9-]{36}") @NotNull String id, @NotBlank @Size(max=5000) String text, boolean shareWithPartner) {}
   public record Feedback(@Min(1) @Max(5) int clarity, @NotBlank @Size(max=2000) String strengths, @NotBlank @Size(max=2000) String improvements) {}
 
   @GetMapping("/config")
@@ -91,7 +92,7 @@ public class PeerPracticeController {
   @PostMapping("/rooms/{id}/consent") public Object consent(@PathVariable String id,@RequestBody Consent in,Principal p) { rooms.consent(id,p.getName(),in.enabled()); return Map.of("ok",true); }
   @PostMapping("/rooms/{id}/notes") public Object note(@PathVariable String id,@Valid @RequestBody Note in,Principal p) {
     var r=rooms.member(id,p.getName());
-    rooms.note(id,p.getName(),in.id(),"note",in.text(),p.getName().equals(r.get("interviewer_id")) ? "interviewer" : "candidate"); return Map.of("ok",true);
+    rooms.note(id,p.getName(),in.id(),"note",in.text(),p.getName().equals(r.get("interviewer_id")) ? "interviewer" : "candidate",in.shareWithPartner()); return Map.of("ok",true);
   }
   @DeleteMapping("/rooms/{id}/notes/{noteId}") public Object remove(@PathVariable String id,@PathVariable String noteId,Principal p) { rooms.removeNote(id,p.getName(),noteId); return Map.of("ok",true); }
   @PostMapping("/rooms/{id}/feedback") public Object feedback(@PathVariable String id,@Valid @RequestBody Feedback in,Principal p) { rooms.feedback(id,p.getName(),in.clarity(),in.strengths(),in.improvements()); return Map.of("ok",true); }
@@ -106,7 +107,7 @@ public class PeerPracticeController {
     byte[] bytes=audio.getBytes(); validateWav(bytes);
     rate.check("peer-audio:"+p.getName(),150,3600);
     String text=ai.transcribe(bytes,language);
-    rooms.note(id,p.getName(),clipId,"transcript",text,speakerRole);
+    rooms.note(id,p.getName(),clipId,"transcript",text,speakerRole,true);
     return Map.of("ok",true,"text",text);
   }
   static void validateWav(byte[] bytes) {
@@ -118,26 +119,20 @@ public class PeerPracticeController {
   private static boolean tag(byte[] b,int at,String text) { return new String(b,at,4,StandardCharsets.US_ASCII).equals(text); }
 
   @PostMapping("/rooms/{id}/analysis")
+  @SuppressWarnings("unchecked")
   public Object analyse(@PathVariable String id,Principal p) {
-    String uid=p.getName(), key=id+":"+uid;
-    var r=rooms.member(id,uid);
-    if (!"COMPLETED".equals(r.get("status"))) throw PeerPracticeService.conflict("Analysis is available only after the interview ends.");
-    var previous=db.list("SELECT result_json FROM peer_reports WHERE room_id=? AND user_id=?",id,uid);
-    if (!previous.isEmpty()) return db.parse((String)previous.getFirst().get("result_json"));
-    if (!analysing.add(key)) throw PeerPracticeService.conflict("Your analysis is already being prepared.");
+    String uid=p.getName();
+    var snapshot=rooms.analysisSnapshot(id,uid);
+    var previous=(JsonNode)snapshot.get("report");
+    if (previous!=null && previous.path("version").asInt()==2) return previous;
+    // A single shared report per room prevents duplicate calls when both people finish together.
+    if (!analysing.add(id)) throw PeerPracticeService.conflict("The interview report is already being prepared. It will be available to both participants.");
     try {
-      var all=rooms.notes(id,uid);
-      var selected=new ArrayList<Map<String,Object>>(); int used=0;
-      for (var n:all) { int size=((String)n.get("content")).length(); if (used+size>60000) break; selected.add(n); used+=size; }
-      String own=selected.stream().filter(n->uid.equals(n.get("user_id"))).map(n->(String)n.get("content")).collect(java.util.stream.Collectors.joining("\n"));
-      if (own.strip().length()<80) throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,"There is not enough of your conversation to analyse yet. Add your questions and answers in Notes, or wait for your transcript to finish.");
-      var input=Map.of("participantToReview",uid,"session",r.get("title"),"entries",selected,"peerFeedback",db.list("SELECT clarity,strengths,improvements FROM peer_feedback WHERE room_id=? AND author_id<>?",id,uid));
-      var result=executor.run(uid,"PeerReviewPrompt",input);
-      for (var mistake:result.path("mistakes")) if (!own.contains(mistake.path("quote").asText()))
-        throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,"Analysis included an unsupported quote. Please try again.");
-      ((com.fasterxml.jackson.databind.node.ObjectNode)result).put("reviewedEntries",selected.size()).put("totalEntries",all.size());
+      var review=new PeerReviewReport(snapshot);
+      var result=review.complete(review.needsAI() ? executor.run(uid,"PeerReviewPrompt",review.input()) : null);
+      var r=(Map<String,Object>)snapshot.get("room");
       rooms.saveReport(id,uid,((Number)r.get("content_revision")).intValue(),result);
       return result;
-    } finally { analysing.remove(key); }
+    } finally { analysing.remove(id); }
   }
 }

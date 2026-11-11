@@ -1,3 +1,5 @@
+import { ThemeToggle } from '../components/ThemeToggle';
+import { CreatorCard } from '../components/CreatorCard';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, FileText, Mic, Route, Sparkles, Users, PenLine, Menu, X, Check, GraduationCap, Lightbulb, Target, MessageCircle, BrainCircuit } from 'lucide-react';
@@ -36,9 +38,9 @@ export function CampusLanding() {
   return <div className="campus-site" ref={page}>
     <a className="campus-skip" href="#campus-main">Skip to content</a>
     <header className="campus-nav" onKeyDown={event => { if(event.key === 'Escape') setMenu(false); }}><Link to="/" aria-label="SkillNex home"><Logo/></Link><nav id="campus-navigation" className={menu ? 'open' : ''} aria-label="Main navigation">
-      {[['Home','#campus-main'],['About','#about'],['Career tools','#tools'],['Your journey','#journey'],['FAQ','#faq']].map(([label,href])=><a key={href} href={href} onClick={()=>setMenu(false)}>{label}</a>)}
+      {[['Home','#campus-main'],['About','#about'],['Career tools','#tools'],['Your journey','#journey'],['FAQ','#faq'],['About Creator','#creator']].map(([label,href])=><a key={href} href={href} onClick={()=>setMenu(false)}>{label}</a>)}
       <Link className="campus-mobile-login" to="/login">Log in</Link>
-    </nav><div><Link className="campus-login" to="/login">Log in</Link><Link className="campus-button small" to="/signup">Get started <ArrowUpRight size={15}/></Link><button className="campus-menu" aria-label={menu?'Close navigation':'Open navigation'} aria-expanded={menu} onClick={()=>setMenu(!menu)} onKeyDown={event => { if(event.key === 'Escape') setMenu(false); }}>{menu?<X/>:<Menu/>}</button></div></header>
+    </nav><div><ThemeToggle /><Link className="campus-login" to="/login">Log in</Link><Link className="campus-button small" to="/signup">Get started <ArrowUpRight size={15}/></Link><button className="campus-menu" aria-label={menu?'Close navigation':'Open navigation'} aria-expanded={menu} onClick={()=>setMenu(!menu)} onKeyDown={event => { if(event.key === 'Escape') setMenu(false); }}>{menu?<X/>:<Menu/>}</button></div></header>
     <main id="campus-main">
       <section className="campus-hero">
         <div className="campus-wrap campus-hero-content">
@@ -77,6 +79,7 @@ export function CampusLanding() {
         ['Does a resume score guarantee a job?','No. Resume scores are improvement estimates. Employers make their own hiring decisions.'],
       ].map(([q,a])=><details key={q}><summary>{q}<span>+</span></summary><p>{a}</p></details>)}</div></section>
       <section className="campus-final"><div className="campus-wrap"><span className="campus-eyebrow">YOU HAVE THE AMBITION.</span><h2>BUILD IT. PRACTICE IT.<br/><span>MAKE YOUR NEXT MOVE.</span></h2><p>Bring your goals. We’ll help you work on the next step.</p><div className="campus-actions"><Link className="campus-button" to="/signup">Get started with SkillNex <ArrowRight size={18}/></Link>{config?.demo&&<Link className="campus-outline" to="/demo">Explore demo</Link>}</div></div></section>
+      <section className="campus-wrap creator-section" id="creator" aria-label="About Creator"><div className="creator-section-label">The person behind SkillNex</div><CreatorCard /></section>
     </main><footer className="campus-footer campus-wrap"><Link to="/" aria-label="SkillNex home"><Logo/></Link><span>Craft Your Resume. Crack Your Interview</span><small>© {new Date().getFullYear()} SkillNex</small></footer>
   </div>;
 }

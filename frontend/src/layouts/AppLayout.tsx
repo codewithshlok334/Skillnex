@@ -13,8 +13,6 @@ import {
   ShieldCheck,
   Search,
   Bell,
-  Sun,
-  Moon,
   ChevronDown,
   ArrowUpRight,
   Menu,
@@ -27,6 +25,7 @@ import {
   ArrowLeft,
   Video,
   Brain,
+  UserRound,
 } from 'lucide-react';
 import { api, post, ApiError } from '../api/client';
 import { SessionContext, useConfig } from '../hooks/useSession';
@@ -36,7 +35,7 @@ import { Dialog } from '../components/ui/dialog';
 import { Loading, ErrorState } from '../components/Common';
 import { initials } from '../utils/cn';
 import { AssistantWidget } from '../components/AssistantWidget';
-import { useWorkspaceTheme } from '../hooks/useWorkspacePreferences';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { WorkspaceSettings } from '../components/WorkspaceSettings';
 import '../logout.css';
 import '../workspace-navigation.css';
@@ -59,6 +58,7 @@ const nav = [
   { label: 'Community', path: '/app/community', icon: MessagesSquare },
   { label: 'Career roadmap', path: '/app/roadmap', icon: Route },
   { label: 'Peer Practice', path: '/app/peer-practice', icon: Video, badge: 'NEW' },
+  { label: 'About Creator', path: '/app/about-creator', icon: UserRound },
 ];
 export function AppLayout() {
   const logoutPending = useRef(false);
@@ -80,8 +80,6 @@ export function AppLayout() {
     [search, setSearch] = useState(false),
     [query, setQuery] = useState(''),
     [settings, setSettings] = useState(false);
-  const { theme, setTheme } = useWorkspaceTheme();
-  const dark = theme === 'dark';
   const client = useQueryClient(),
     navigate = useNavigate(),
     location = useLocation();
@@ -298,14 +296,7 @@ export function AppLayout() {
                 <span>Search anything…</span>
                 <kbd>⌘ K</kbd>
               </button>
-              <button
-                className="icon-button"
-                aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-                title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-                onClick={() => setTheme(dark ? 'light' : 'dark')}
-              >
-                {dark ? <Sun size={19} /> : <Moon size={19} />}
-              </button>
+              <ThemeToggle />
               <button className="topbar-settings" aria-label="Open settings" onClick={() => setSettings(true)}><Settings size={17} /><span>Settings</span></button>
               <button
                 className="icon-button notification-trigger"

@@ -104,7 +104,9 @@ Spring Boot does not automatically read the root `.env` file outside Compose. Ex
 - Embedding-based cosine similarity search when configured, with explicit related-keyword fallback when unavailable.
 - Personalized roadmap generation, self-reported milestone progress, and recommendations using actual profile/resume/interview/community data.
 - Profile editing, validated profile photo upload, public-profile opt-in, notifications, admin analytics, user bans, faculty approval, category management, and report moderation.
-- Responsive drawer navigation, light/dark themes, reduced-motion support, loading states, empty states, and recoverable errors.
+- One persistent light/dark switch across the homepage, login and every workspace tool; dark is the default. Responsive drawer navigation, reduced-motion support, loading states, empty states, and recoverable errors.
+- **About Creator** on the homepage and in the signed-in sidebar, with Shlok Maurya's supplied circular portrait and LinkedIn profile.
+- Compact CodeLab activity calendar with month separators; original first-accepted dates, unique SkillCoins and existing progress are retained.
 
 ## Connect an AI provider
 
@@ -205,10 +207,18 @@ The persistence layer intentionally uses Spring JDBC and explicit schema relatio
 
 Peer Practice is available below Career roadmap. Create a private room, share its
 invite with one partner, and start a two-person interview. Cameras are optional;
-the account photo or initials appear when video is off. Written notes are private.
-Optional microphone transcription requires each participant's consent and the
-configured Gemini transcription provider. Analysis becomes available after the
-session ends and uses saved text; it does not assess video or invent scores.
+the account photo or initials appear when video is off. A microphone selector,
+live input meter, sound-unlock button and bounded automatic reconnection help
+diagnose and recover interrupted calls. Cross-network media uses the configured
+TURN relay; no provider credentials are committed to the repository.
+
+After the interview ends, both participants can see a shared report with individual
+practice points, strengths, supported mistakes, corrections and next steps.
+Optional speech transcription requires each participant's consent and the configured
+Gemini transcription provider. Written notes stay private unless explicitly shared
+for the review; existing notes remain private. Analysis uses saved shared text, with
+unscored areas when evidence is insufficient. It does not assess video or vocal
+quality. See [Peer Practice setup and review details](docs/PEER-PRACTICE.md).
 
 Career roadmap now includes 26 suggested goals, searchable by category. A custom
 goal is still supported.
@@ -216,6 +226,7 @@ goal is still supported.
 - [API reference](docs/API.md)
 - [Aptitude Arena, stickers, coins and password rules](docs/APTITUDE-AND-ACHIEVEMENTS.md)
 - [Architecture and data model](docs/ARCHITECTURE.md)
+- [Peer Practice calls and two-person reports](docs/PEER-PRACTICE.md)
 - [Production deployment](docs/DEPLOYMENT.md)
 - [Verification and known boundaries](docs/VERIFICATION.md)
 

@@ -17,6 +17,7 @@ const originalFetch = window.fetch.bind(window);
 let room: PeerRoomData;
 let signals: { sender: string; epoch: number; seq: number; kind: string; payload: unknown }[] = [];
 let seq = 0, config: PeerConfig;
+let droppedSignals = 0;
 window.fetch = async (input, init) => {
   const path = String(input);
   if (!path.startsWith('/api/peer/')) return originalFetch(input, init);
@@ -27,6 +28,7 @@ window.fetch = async (input, init) => {
   const person = room.participants.find(p => p.id === uid)!;
   if (action === 'connect') { person.client_id = body.clientId; room.epoch++; signals = []; }
   if (action === 'signal') {
+    if (droppedSignals > 0) { droppedSignals--; throw new TypeError('Synthetic signaling network interruption'); }
     if (body.epoch === room.epoch && body.clientId === person.client_id) signals.push({ sender: uid, epoch: room.epoch, seq: ++seq, kind: body.kind, payload: body.payload });
     return Response.json({ ok: true });
   }
@@ -118,14 +120,17 @@ function App() {
     <div style={{ display: 'flex', gap: 10, margin: '20px 0' }}>
       <button onClick={connect} disabled={busy}>Connect peers</button>
       <button onClick={async () => { for (const e of engines) { await e.toggle('audio'); await e.toggle('video'); } }}>Toggle both devices</button>
+      <button onClick={() => engines[0]?.toggle('audio')}>Toggle host microphone</button>
+      <button onClick={() => engines[1]?.toggle('audio')}>Toggle guest microphone</button>
       <button onClick={() => engines[1]?.toggle('video')}>Toggle guest camera</button>
       <button onClick={() => engines[1]?.reconnect()}>Reconnect guest</button>
+      <button onClick={() => { droppedSignals = 1; void engines[0]?.reconnect(); }}>Reconnect with one lost signal</button>
       <button onClick={measure}>Measure media</button>
       <button onClick={stop}>Stop test</button>
     </div>
     <strong role="status">{result}</strong>
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, marginTop: 20 }}>
-      {(['host', 'guest'] as const).map(id => <section key={id}><h2>{id} receives partner</h2><p>{states[id].connection} · {states[id].error}</p><Portrait person={{ name: id === 'host' ? 'Guest' : 'Host' }} stream={states[id].remote} camera mic label="REMOTE MEDIA" /></section>)}
+      {(['host', 'guest'] as const).map(id => <section key={id}><h2>{id} receives partner</h2><p>{states[id].connection} · {states[id].error}</p><p>Local mic level: {Math.round(states[id].micLevel * 100)}% · {states[id].micIssue}</p><Portrait person={{ name: id === 'host' ? 'Guest' : 'Host' }} stream={states[id].remote} camera mic label="REMOTE MEDIA" /></section>)}
     </div><pre aria-label="Media statistics" style={{ whiteSpace: 'pre-wrap' }}>{stats}</pre>
   </main>;
 }

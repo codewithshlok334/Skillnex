@@ -1,53 +1,25 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Check, Copy, Video, VideoOff, Mic, MicOff, Users, Plus, Link as LinkIcon, ShieldCheck, Clock3, PhoneOff, RefreshCw, ArrowLeftRight, FileText, Sparkles, Volume2, Trash2, CheckCircle2, MessageSquare, ChevronDown } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Copy, Video, VideoOff, Mic, MicOff, Users, Plus, Link as LinkIcon, ShieldCheck, Clock3, PhoneOff, RefreshCw, ArrowLeftRight, FileText, Sparkles, Trash2, CheckCircle2, MessageSquare, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, post } from '../api/client';
 import { useSession } from '../hooks/useSession';
-import { initials } from '../utils/cn';
-import { PeerCall, initialCall, type CallState, type PeerRoomData, type PeerParticipant, type PeerConfig, type PeerReport } from '../utils/peerCall';
+import { PeerCall, initialCall, type CallState, type PeerRoomData, type PeerConfig, type PeerReport } from '../utils/peerCall';
+import { Portrait } from '../components/PeerPortrait';
+import { PeerReview } from '../components/PeerReview';
+export { Portrait } from '../components/PeerPortrait';
 import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
 import { ErrorState, Loading } from '../components/Common';
 import '../peer-practice.css';
+import '../peer-review.css';
 
 const roomId = (text: string) => {
   try { const u = new URL(text); text = u.searchParams.get('join') || u.searchParams.get('room') || ''; } catch {}
   return /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(text.trim()) ? text.trim() : null;
 };
 const elapsed = (ms: number) => `${String(Math.floor(ms/60000)).padStart(2,'0')}:${String(Math.floor(ms/1000)%60).padStart(2,'0')}`;
-
-export function Portrait({ person, stream, camera, mic, self, label }: { person?: Pick<PeerParticipant,'name'|'photo_url'>; stream?: MediaStream | null; camera?: boolean; mic?: boolean; self?: boolean; label: string }) {
-  const video = useRef<HTMLVideoElement>(null);
-  const audio = useRef<HTMLAudioElement>(null);
-  const [blocked, setBlocked] = useState(false);
-  useEffect(() => {
-    const el = video.current; if (!el) return;
-    el.srcObject = stream || null;
-    const play = () => { if (stream) void el.play().catch(() => {}); };
-    play(); stream?.addEventListener('addtrack', play);
-    return () => { stream?.removeEventListener('addtrack', play); el.srcObject = null; };
-  }, [stream]);
-  useEffect(() => {
-    const el = audio.current; if (!el || self || !stream) return;
-    let active = true;
-    el.srcObject = stream;
-    const play = () => { if (stream.getAudioTracks().length) void el.play().then(() => { if (active) setBlocked(false); }).catch(() => { if (active) setBlocked(true); }); };
-    play(); stream.addEventListener('addtrack', play);
-    // A click on any call control can also unlock sound on browsers that require a gesture.
-    document.addEventListener('pointerdown', play); document.addEventListener('keydown', play);
-    return () => { active = false; stream.removeEventListener('addtrack', play); document.removeEventListener('pointerdown', play); document.removeEventListener('keydown', play); el.srcObject = null; };
-  }, [stream, self]);
-  return <div className={`pp-person ${self ? 'pp-self' : ''} ${!person ? 'pp-person-empty' : ''}`}>
-    <video ref={video} autoPlay playsInline muted className={camera && stream ? 'is-visible' : ''} aria-label={self ? 'Your camera preview' : 'Partner video'} />
-    {!self && <audio ref={audio} autoPlay aria-label="Partner audio" />}
-    {!(camera && stream) && <div className="pp-profile-fallback"><span className="pp-profile-orbit" /><span className="pp-profile-orbit pp-orbit-two" /><div className="pp-profile-photo">{person?.photo_url ? <img src={person.photo_url} alt={person.name} /> : person ? initials(person.name) : <Users size={34} />}</div><strong>{person?.name || 'Your partner’s place'}</strong><small>{person ? 'Camera is off' : 'A good conversation starts with two.'}</small></div>}
-    <span className="pp-role-label">{label}</span>
-    <div className="pp-person-name"><span>{person ? `${person.name}${self ? ' (you)' : ''}` : 'Waiting for a partner'}</span>{mic ? <Mic size={15} /> : <MicOff size={15} />}</div>
-    {blocked && !self && stream && mic && <button className="pp-enable-audio" onClick={() => void audio.current?.play().then(() => setBlocked(false)).catch(() => toast.error('Your browser is blocking playback. Check its sound settings.'))}><Volume2 size={16} /> Hear your partner</button>}
-  </div>;
-}
 
 export function PeerPractice() {
   const { user } = useSession(); const [params, setParams] = useSearchParams();
@@ -92,19 +64,18 @@ function PeerRoom({ id, leave }: { id: string; leave: () => void }) {
   const config = useQuery({ queryKey: ['peer-config'], queryFn: () => api<PeerConfig>('/peer/config'), staleTime: 10 * 60 * 1000 });
   const q = useQuery({ queryKey: ['peer-room', id], queryFn: () => api<PeerRoomData>(`/peer/rooms/${id}`) });
   const [room, setRoom] = useState<PeerRoomData>(); const [call, setCall] = useState<CallState>(initialCall);
-  const engine = useRef<PeerCall | undefined>(undefined); const revision = useRef(-1); const wasActive = useRef(false); const autoReviewed = useRef(false);
+  const engine = useRef<PeerCall | undefined>(undefined); const revision = useRef(-1); const autoReviewRevision = useRef(-1);
   const observedCompletion = useRef(false);
   const [now, setNow] = useState(Date.now()); const [busy, setBusy] = useState(''); const [confirmEnd, setConfirmEnd] = useState(false);
-  const [tab, setTab] = useState<'notes'|'guide'>('guide'); const [note, setNote] = useState('');
+  const [tab, setTab] = useState<'notes'|'guide'>('guide'); const [note, setNote] = useState(''); const [shareNote, setShareNote] = useState(false);
   const [report, setReport] = useState<PeerReport | null>(null); const [analysisError, setAnalysisError] = useState<unknown>(null); const analysisPending = useRef(false);
   const [strengths, setStrengths] = useState(''); const [improvements, setImprovements] = useState(''); const [clarity, setClarity] = useState(3);
   const initialStatus = q.data?.status; const ready = !!q.data && !!config.data;
   const completed = room?.status === 'COMPLETED';
-  useEffect(() => { if (q.data) { setRoom(q.data); setReport(q.data.report || null); revision.current = q.data.content_revision; } }, [q.data]);
+  useEffect(() => { if (q.data) { setRoom(q.data); setReport(q.data.report || null); if (q.data.report?.version === 2) setAnalysisError(null); revision.current = q.data.content_revision; } }, [q.data]);
   useEffect(() => {
     if (!ready || initialStatus === 'COMPLETED' || !config.data) return;
     const instance = new PeerCall(id, user.id, config.data, update => {
-      if (update.status === 'ACTIVE') wasActive.current = true;
       setRoom(old => ({ ...old, ...update }));
       if (update.content_revision !== revision.current || (update.status === 'COMPLETED' && !observedCompletion.current)) {
         revision.current = update.content_revision; void q.refetch();
@@ -115,12 +86,14 @@ function PeerRoom({ id, leave }: { id: string; leave: () => void }) {
     return () => { instance.destroy(); if (engine.current === instance) engine.current = undefined; };
   }, [ready, id, user.id]);
   useEffect(() => { const t=setInterval(()=>setNow(Date.now()),1000); return()=>clearInterval(t); }, []);
-  // End-of-session reviews only. Late transcript chunks invalidate the previous result on the server.
+  // Wait for final speech uploads. A changed revision allows a fresh review after late entries.
   useEffect(() => {
-    if (!completed || !wasActive.current || autoReviewed.current || busy || call.pending || call.transcriptError || !config.data?.analysisAvailable || report) return;
-    const own = room?.notes?.filter(n => n.user_id === user.id).map(n=>n.content).join('') || '';
-    if (own.length >= 80) { autoReviewed.current = true; void analyse(); }
-  }, [completed, call.pending, room?.notes, report, busy]);
+    if (!completed || !room || autoReviewRevision.current === room.content_revision || busy || call.pending || !config.data?.analysisAvailable || report?.version === 2) return;
+    const shared = room.notes?.filter(n => n.source === 'transcript' || n.shared) || [];
+    if (!room.participants.some(person => shared.filter(n => n.user_id === person.id).reduce((sum, n) => sum + n.content.trim().length, 0) >= 80)) return;
+    const timer = setTimeout(() => { autoReviewRevision.current = room.content_revision; void analyse(); }, 6000);
+    return () => clearTimeout(timer);
+  }, [completed, call.pending, room?.content_revision, report, busy, config.data?.analysisAvailable]);
   useEffect(() => { if (!completed) return; const t=setInterval(()=>void q.refetch(),5000); return()=>clearInterval(t); }, [completed]);
 
   async function refresh() { await q.refetch(); void client.invalidateQueries({ queryKey: ['peer-rooms'] }); }
@@ -140,7 +113,7 @@ function PeerRoom({ id, leave }: { id: string; leave: () => void }) {
   }
   async function saveNote(e: React.FormEvent) {
     e.preventDefault(); if (!note.trim() || busy) return; setBusy('note');
-    try { await post(`/peer/rooms/${id}/notes`, { id: crypto.randomUUID(), text: note.trim() }); setNote(''); await refresh(); toast.success('Private note saved.'); }
+    try { await post(`/peer/rooms/${id}/notes`, { id: crypto.randomUUID(), text: note.trim(), shareWithPartner: shareNote }); setNote(''); await refresh(); toast.success(shareNote ? 'Answer shared for the final review.' : 'Private note saved.'); }
     catch(e) { toast.error((e as Error).message); } finally { setBusy(''); }
   }
   async function analyse() {
@@ -174,30 +147,28 @@ function PeerRoom({ id, leave }: { id: string; leave: () => void }) {
       {call.error && <div className="pp-message" role="alert">{call.error}</div>}
       <div className="pp-meeting-grid"><div className="pp-stage"><div className="pp-people"><Portrait person={partner} stream={call.remote} camera={partnerHere && partner?.camera && connected} mic={partnerHere && partner?.mic} label={partner?.id===room.interviewer_id ? 'INTERVIEWER' : 'CANDIDATE'} /><Portrait person={{name:user.name,photo_url:user.photo_url}} stream={call.local} camera={call.camera} mic={call.mic} self label={user.id===room.interviewer_id ? 'INTERVIEWER' : 'CANDIDATE'} /></div>
         <div className="pp-call-controls"><div className="pp-media-controls"><button className={call.mic ? 'is-on':''} aria-pressed={call.mic} onClick={()=>void engine.current?.toggle('audio')}>{call.mic ? <Mic /> : <MicOff />}<span>{call.mic ? 'Mute' : 'Start mic'}</span></button><button className={call.camera ? 'is-on':''} aria-pressed={call.camera} onClick={()=>void engine.current?.toggle('video')}>{call.camera ? <Video /> : <VideoOff />}<span>{call.camera ? 'Stop video' : 'Start video'}</span></button><button disabled={room.status!=='ACTIVE' || !!busy} onClick={()=>action('swap')}><ArrowLeftRight /><span>Switch roles</span></button><button onClick={()=>setConfirmEnd(true)} className="pp-control-end"><PhoneOff /><span>End</span></button></div><span className="pp-call-caption"><ShieldCheck size={13} /> Video is never recorded by SkillNex</span></div>
+        <section className="pp-audio-check" aria-label="Microphone check"><div className="pp-mic-meter"><Mic size={16}/><span>{call.mic ? 'Your mic input' : 'Microphone is off'}</span><meter min={0} max={1} value={call.micLevel} aria-label="Your microphone level" /></div><label>Microphone<select aria-label="Choose microphone" value={call.selectedMicrophone === 'default' ? '' : call.selectedMicrophone} onFocus={()=>void engine.current?.refreshMicrophones()} onChange={e=>void engine.current?.setMicrophone(e.target.value)}><option value="">System default</option>{call.microphones.filter(device=>device.deviceId !== 'default').map(device=><option key={device.deviceId} value={device.deviceId}>{device.label || 'Microphone'}</option>)}</select></label><small>{call.micIssue || (call.mic ? 'Speak and check that the bar moves. If it stays empty, choose another microphone.' : 'Start your mic above to talk to your partner.')}</small></section>
         {room.status==='WAITING' ? <section className="pp-conversation-card"><span className="pp-eyebrow">BEFORE YOU BEGIN</span><h2>One link. Two perspectives.</h2><p>Invite your partner, turn on your microphone, and settle in. The host starts the interview when you’re both ready.</p><div className="pp-invite-link"><input aria-label="Invite link" value={`${window.location.origin}/app/peer-practice?join=${id}`} readOnly onFocus={e=>e.target.select()} /><button onClick={copy} aria-label="Copy invite link"><Copy size={17} /></button></div>{isHost ? <Button onClick={()=>action('start')} disabled={!partnerHere || !connected || !!busy}>Start interview <ArrowRight size={16} /></Button> : <p className="pp-waiting-host">Waiting for the host to start the interview.</p>}</section> : <section className="pp-conversation-card"><span className="pp-eyebrow"><MessageSquare size={14} /> THE FLOOR IS YOURS</span><h2>{user.id===room.interviewer_id ? 'Ask. Listen. Follow the story.' : 'Take your time. Think out loud.'}</h2><p>{interviewer?.name} is interviewing. Ask your own questions, follow up on an interesting point, and switch roles whenever you’re ready.</p><div className="pp-conversation-prompt"><span>A starting point, if you need one</span><p>“Tell me about a project you’re proud of. What was the hardest decision you made?”</p></div></section>}
-      </div><aside className="pp-meeting-aside"><div className="pp-aside-tabs"><button aria-pressed={tab==='guide'} onClick={()=>setTab('guide')}>Session guide</button><button aria-pressed={tab==='notes'} onClick={()=>setTab('notes')}>My notes</button></div>{tab==='guide' ? <><section className="pp-guide"><span className="pp-mini-label">KEEP IT HUMAN</span><h3>A little structure helps.</h3><ol><li><b>Break the ice</b><span>Introductions and what you’d like to practise.</span></li><li><b>Explore the details</b><span>Ask about a project, approach or real experience.</span></li><li><b>Trade places</b><span>Give each person time to ask and answer.</span></li><li><b>End with a takeaway</b><span>Share feedback and review the conversation.</span></li></ol></section><div className="pp-analysis-later"><Sparkles size={19}/><strong>Feedback comes after.</strong><p>Your strengths, mistakes and next steps appear after the interview ends.</p></div></> : <><NoteForm note={note} setNote={setNote} save={saveNote} busy={!!busy} /><NoteList room={room} uid={user.id} remove={async noteId=>{await api(`/peer/rooms/${id}/notes/${noteId}`,{method:'DELETE'});await refresh();}} /></>}
-      <section className="pp-transcript-control"><label><input type="checkbox" checked={!!me?.consent} disabled={!!busy || !config.data?.transcriptionAvailable} onChange={e=>void toggleTranscript(e.target.checked)} /><span>Save my speech for the final review</span></label><p>{config.data?.transcriptionAvailable ? 'When the interview starts, your microphone audio is sent to the configured AI provider for transcription. Saved transcript text is shared with your partner and used for analysis. SkillNex does not store the audio.' : 'Automatic transcription is not configured. Save your questions and answers in My notes for the final review.'}</p><small>{call.pending ? `${call.pending} speech segment${call.pending>1?'s':''} saving…` : me?.consent && call.mic && room.status==='ACTIVE' ? 'Transcript on · capturing your speech' : 'No microphone audio is being transcribed'}</small>{call.transcriptError && <p role="alert" className="pp-transcript-error">{call.transcriptError}</p>}</section>
+      </div><aside className="pp-meeting-aside"><div className="pp-aside-tabs"><button aria-pressed={tab==='guide'} onClick={()=>setTab('guide')}>Session guide</button><button aria-pressed={tab==='notes'} onClick={()=>setTab('notes')}>My notes</button></div>{tab==='guide' ? <><section className="pp-guide"><span className="pp-mini-label">KEEP IT HUMAN</span><h3>A little structure helps.</h3><ol><li><b>Break the ice</b><span>Introductions and what you’d like to practise.</span></li><li><b>Explore the details</b><span>Ask about a project, approach or real experience.</span></li><li><b>Trade places</b><span>Give each person time to ask and answer.</span></li><li><b>End with a takeaway</b><span>Share feedback and review the conversation.</span></li></ol></section><div className="pp-analysis-later"><Sparkles size={19}/><strong>Feedback comes after.</strong><p>Both participants get their own points, strengths, mistakes and next steps after the interview ends. Save speech or share written answers to include them.</p></div></> : <><NoteForm note={note} setNote={setNote} share={shareNote} setShare={setShareNote} save={saveNote} busy={!!busy} /><NoteList room={room} uid={user.id} remove={async noteId=>{await api(`/peer/rooms/${id}/notes/${noteId}`,{method:'DELETE'});await refresh();}} /></>}
+      <section className="pp-transcript-control"><label><input type="checkbox" checked={!!me?.consent} disabled={!!busy || !config.data?.transcriptionAvailable} onChange={e=>void toggleTranscript(e.target.checked)} /><span>Save my speech for the final review</span></label><p>{config.data?.transcriptionAvailable ? 'When the interview starts, your microphone audio is sent to the configured AI provider for transcription. Saved transcript text is shared with your partner and used for analysis. SkillNex does not store the audio.' : 'Automatic transcription is not configured. Add your answers in My notes and choose to share them for the final review.'}</p><small>{call.pending ? `${call.pending} speech segment${call.pending>1?'s':''} saving…` : me?.consent && call.mic && room.status==='ACTIVE' ? 'Transcript on · capturing your speech' : 'No microphone audio is being transcribed'}</small>{call.transcriptError && <p role="alert" className="pp-transcript-error">{call.transcriptError}</p>}</section>
       </aside></div>
     </> : <>
       <section className="pp-finished"><span className="pp-finished-icon"><CheckCircle2 size={28}/></span><div><span className="pp-eyebrow">CONVERSATION COMPLETE</span><h2>Good practice. Now make it count.</h2><p>Your camera and microphone are off. Review what went well and what to try next.</p></div></section>
       {(call.pending>0 || call.transcriptError) && <div className="pp-message" role="status">{call.pending ? 'Finishing your transcript. Your analysis will be ready to generate once it is saved.' : call.transcriptError}</div>}
-      <div className="pp-review-grid"><section className="pp-review-main"><div className="pp-section-title"><h2><Sparkles size={20}/> Your interview review</h2><Button size="sm" onClick={analyse} disabled={!!busy || call.pending>0 || !config.data?.analysisAvailable}>{busy==='analysis'?'Reviewing conversation…':report?'Refresh review':'Generate analysis'}</Button></div>
+      <div className="pp-review-grid"><section className="pp-review-main"><div className="pp-section-title"><h2><Sparkles size={20}/> Both sides of the conversation</h2><Button size="sm" onClick={analyse} disabled={!!busy || call.pending>0 || !config.data?.analysisAvailable}>{busy==='analysis'?'Reviewing both participants…':report?'Refresh review':'Generate analysis'}</Button></div>
         {!!analysisError && <ErrorState error={analysisError} />}
-        {report ? <Report report={report} /> : <div className="pp-review-empty"><FileText size={32}/><h3>Built from your actual conversation.</h3><p>Save at least a short answer in your notes or wait for your transcript. The review covers your strengths, specific mistakes, better approaches and next steps.</p><small>No video assessment. No invented scores. {config.data?.analysisAvailable ? '' : 'AI analysis is not configured on this server.'}</small></div>}
+        {report ? <PeerReview report={report} userId={user.id} /> : <div className="pp-review-empty"><FileText size={32}/><h3>Two people. Two individual reviews.</h3><p>Each person gets points, strengths, mistakes with corrections, and next steps based on their saved speech or shared written answers. Private notes stay private.</p><p>{busy==='analysis' ? 'Preparing your final review…' : 'If an answer is missing, add it below and tick “Share this answer for our final review”.'}</p><small>{config.data?.analysisAvailable ? 'A participant without enough saved answers is shown as not scored.' : 'AI analysis is not configured on this server.'}</small></div>}
         {received && <section className="pp-feedback-received"><span className="pp-mini-label">FROM YOUR PARTNER</span><h3>Clarity: {received.clarity}/5 <small>Peer rating</small></h3><p><b>What worked:</b> {received.strengths}</p><p><b>Try next:</b> {received.improvements}</p></section>}
         {partner && <form className="pp-feedback-form" onSubmit={feedback}><h3>{ownFeedback ? 'Update your feedback for' : 'Leave feedback for'} {partner.name}</h3><label>How clear were their explanations?<select value={clarity} onChange={e=>setClarity(Number(e.target.value))}>{[1,2,3,4,5].map(n=><option key={n} value={n}>{n} / 5</option>)}</select></label><label>Something they did well<textarea required maxLength={2000} value={strengths} onChange={e=>setStrengths(e.target.value)} placeholder="Mention a specific answer or example." /></label><label>One thing to improve<textarea required maxLength={2000} value={improvements} onChange={e=>setImprovements(e.target.value)} placeholder="Give a practical suggestion, kindly." /></label><Button variant="secondary" disabled={!!busy} type="submit"><Check size={16}/>{busy==='feedback'?'Saving…':'Share feedback'}</Button></form>}
-      </section><aside className="pp-review-notes"><h2><FileText size={18}/> Conversation & notes</h2><p>Correct a transcript by removing your entry and saving a written correction. New notes refresh the evidence for your next analysis.</p><NoteForm note={note} setNote={setNote} save={saveNote} busy={!!busy}/><NoteList room={room} uid={user.id} remove={async noteId=>{await api(`/peer/rooms/${id}/notes/${noteId}`,{method:'DELETE'});await refresh();}}/></aside></div>
+      </section><aside className="pp-review-notes"><h2><FileText size={18}/> Conversation & notes</h2><p>To correct your transcript, remove your entry and save a shared written correction. Each person can edit only their own entries.</p><NoteForm note={note} setNote={setNote} share={shareNote} setShare={setShareNote} save={saveNote} busy={!!busy}/><NoteList room={room} uid={user.id} remove={async noteId=>{await api(`/peer/rooms/${id}/notes/${noteId}`,{method:'DELETE'});await refresh();}}/></aside></div>
     </>}
     <Dialog open={confirmEnd} onOpenChange={setConfirmEnd} title="Finish this interview?" description="This ends the call for both people. Your saved notes and transcript stay available for the final review."><div className="pp-end-dialog"><Button variant="secondary" disabled={!!busy} onClick={()=>setConfirmEnd(false)}>Keep practising</Button><Button disabled={!!busy} onClick={()=>action('end')}><PhoneOff size={16}/>{busy==='end'?'Ending…':'End & review'}</Button></div></Dialog>
   </div>;
 }
 
-function NoteForm({note,setNote,save,busy}:{note:string;setNote:(v:string)=>void;save:(e:React.FormEvent)=>void;busy:boolean}) {
-  return <form className="pp-note-form" onSubmit={save}><label htmlFor="pp-note">Your private notes<textarea id="pp-note" value={note} onChange={e=>setNote(e.target.value)} placeholder="Question asked… My answer… What I’d explain differently…" maxLength={5000} rows={5}/></label><small>Only you can see written notes. They are sent to AI when you generate your review.</small><Button variant="secondary" size="sm" type="submit" disabled={busy || !note.trim()}><Plus size={14}/> Save note</Button></form>;
+function NoteForm({note,setNote,share,setShare,save,busy}:{note:string;setNote:(v:string)=>void;share:boolean;setShare:(v:boolean)=>void;save:(e:React.FormEvent)=>void;busy:boolean}) {
+  return <form className="pp-note-form" onSubmit={save}><label htmlFor="pp-note">{share ? 'Your shared answer' : 'Your private notes'}<textarea id="pp-note" value={note} onChange={e=>setNote(e.target.value)} placeholder="Question asked… My answer… What I’d explain differently…" maxLength={5000} rows={5}/></label><label className="pp-share-answer"><input type="checkbox" checked={share} onChange={e=>setShare(e.target.checked)} /> Share this answer for our final review</label><small>{share ? 'Your partner can read this answer. It is sent to AI for the two-person review.' : 'Only you can see this note. It is not included in the shared AI review.'}</small><Button variant="secondary" size="sm" type="submit" disabled={busy || !note.trim()}><Plus size={14}/>{share ? 'Save shared answer' : 'Save private note'}</Button></form>;
 }
 function NoteList({room,uid,remove}:{room:PeerRoomData;uid:string;remove:(id:string)=>Promise<void>}) {
-  return <div className="pp-notes-list">{room.notes?.length ? room.notes.map(n=><article key={n.id}><div><span>{n.user_id===uid?'You':'Partner'} · {n.source==='note'?'Private note':n.speaker_role}</span>{n.user_id===uid && <button aria-label="Delete this note" onClick={()=>void remove(n.id).catch(e=>toast.error(e.message))}><Trash2 size={13}/></button>}</div><p>{n.content}</p></article>):<p className="pp-no-notes">No saved notes yet. A few details now make the final review more useful.</p>}</div>;
-}
-function Report({report}:{report:PeerReport}) {
-  return <div className="pp-report"><p className="pp-report-summary">{report.summary}</p><div className="pp-report-coverage"><ShieldCheck size={16}/><p>{report.coverage}<small>{report.reviewedEntries} of {report.totalEntries} saved entries reviewed. AI suggestions can be imperfect.</small></p></div><section><h3><CheckCircle2 size={18}/> What went well</h3>{report.strengths.length ? <ul>{report.strengths.map((s,i)=><li key={i}>{s}</li>)}</ul>:<p>There is not enough evidence to identify specific strengths yet.</p>}</section><section><h3><MessageSquare size={18}/> Mistakes & better approaches</h3>{report.mistakes.length?report.mistakes.map((m,i)=><article className="pp-mistake" key={i}><blockquote>“{m.quote}”</blockquote><h4>{m.issue}</h4><p>{m.improvement}</p></article>):<p>No specific mistakes were supported by the saved content.</p>}</section><section><h3><ArrowRight size={18}/> Your next practice steps</h3><ol>{report.nextSteps.map((s,i)=><li key={i}>{s}</li>)}</ol></section></div>;
+  return <div className="pp-notes-list">{room.notes?.length ? room.notes.map(n=><article key={n.id} id={`peer-note-${n.id}`} tabIndex={-1}><div><span>{n.user_id===uid?'You':'Partner'} · {n.source==='note' ? n.shared ? 'Shared answer' : 'Private note' : `${n.speaker_role} · transcript`}</span>{n.user_id===uid && <button aria-label="Delete this note" onClick={()=>void remove(n.id).catch(e=>toast.error(e.message))}><Trash2 size={13}/></button>}</div><p>{n.content}</p></article>):<p className="pp-no-notes">No saved notes yet. Save speech or share an answer for the final review.</p>}</div>;
 }
