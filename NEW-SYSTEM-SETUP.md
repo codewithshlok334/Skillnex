@@ -1,6 +1,6 @@
 # SkillNex ko doosre system par chalayein
 
-Yeh complete editable source package hai: frontend, backend, latest interview/mic recovery fixes, chat, resumes, CodeLab ke 50 DSA questions, Java/C++/Python solutions, Aptitude Arena ke 500 MCQs (quantitative, reasoning, verbal), practice/mock tests, profile stickers, CodeLab coins/streaks, tests, database migrations, images aur launchers included hain. Project ko dobara banane ki zaroorat nahi. [Naye features aur rules](docs/APTITUDE-AND-ACHIEVEMENTS.md) yahan hain; purane accounts/passwords retain hote hain.
+Yeh complete editable source package hai: frontend, backend, latest interview/mic recovery fixes, chat, resumes, CodeLab ke 100 DSA questions, 300 Java/C++/Python reference solutions aur 661 test cases, Aptitude Arena ke 500 MCQs (quantitative, reasoning, verbal), practice/mock tests, profile stickers, CodeLab coins/streaks, tests, database migrations, images aur launchers included hain. Project ko dobara banane ki zaroorat nahi. [Naye features aur rules](docs/APTITUDE-AND-ACHIEVEMENTS.md) yahan hain; purane accounts/passwords retain hote hain.
 
 ## 1. Extract aur prerequisites
 
@@ -47,6 +47,8 @@ Config backend start karne se pehle save karein. Baad mein badlein toh sirf exis
 
 ## 4. CodeLab — pehla setup
 
+Original questions 1–50 unchanged hain; naye questions 51–100 mein 15 Easy, 25 Medium aur 10 Hard classics hain. Har question ke exactly 2 examples hain; baaki hidden cases ki ginti question ke hisaab se badalti hai. Official links UI aur [references.json](scripts/codelab_bank/references.json) mein hain. Statements, solutions aur tests SkillNex ke liye authored hain; programs standard input/output use karte hain, LeetCode function API nahi. Coins aur streaks ke rules unchanged hain.
+
 1. Docker Desktop open karein aur Linux engine ready hone dein.
 2. Project ke `START-CODELAB.cmd` ko double-click karein.
 3. Pehli baar sandbox aur Java, C++ aur Python runtimes download honge. Ismein waqt aur disk space lag sakta hai; download complete hone dein.
@@ -82,7 +84,7 @@ Mac/Linux par `.cmd` launcher ke badle manual commands use karein: `mvn` aur `np
 
 ## 6. Saved data aur sharing
 
-Fresh demo setup persistent H2 database `backend/data` mein banata hai. Sample accounts, migrations aur 50 coding questions automatically load hote hain. Is mode mein alag PostgreSQL database manually banana nahi padta. PostgreSQL deployment files bhi included hain; unka setup [README](README.md) mein hai.
+Fresh demo setup persistent H2 database `backend/data` mein banata hai. Sample accounts, migrations aur 100 coding questions automatically load hote hain. Is mode mein alag PostgreSQL database manually banana nahi padta. PostgreSQL deployment files bhi included hain; unka setup [README](README.md) mein hai.
 
 Shareable ZIP mein purane private accounts, resumes, chats, submissions, API keys, `.env`, local backups aur machine-specific paths nahi hain. Isliye doosre system par purana personal login/data apne aap transfer nahi hoga. Existing personal data migrate karna ho toh [UPDATE_AND_CHECK.md](UPDATE_AND_CHECK.md) follow karein; running database file ko seedha copy mat karein.
 
@@ -91,9 +93,9 @@ Shareable ZIP mein purane private accounts, resumes, chats, submissions, API key
 - Login, logout aur login dobara karke saved work dekhein.
 - AI assistant mein do consecutive questions bhejein.
 - Interview mein actual laptop/headset microphone select karke 10 seconds bolkar test karein; Chrome microphone permission allow honi chahiye. Live voice fail ho toh **Continue with Text** se direct mic transcription aur typing available hain.
-- CodeLab mein Java/C++/Python Run/Submit try karein. Expected output check hota hai; variable names alag rakh sakte hain.
+- CodeLab mein Java/C++/Python Run/Submit try karein. Run 2 examples check karta hai; Submit us question ke saare cases. Variable names alag rakh sakte hain. Statement ke mutabik valid index pairs, result-row order, group/member order ya token multisets accept hote hain; [checker details](docs/CODELAB.md) dekhein.
 
-4 October 2026 ke source checks: frontend build, 68 frontend tests aur 62 backend tests pass hue. Original laptop par browser login/data recovery, interview answer/next question/report, Python Run 2/2, Python/Java Submit 6/6 aur C++ execution verify hue. Synthetic audio transcription test pass hua; yeh naye computer ke physical microphone ya full live conversation ki guarantee nahi hai.
+Naye 50 coding questions ke 100 manually checked examples aur 5,545 independent randomized checks pass hue: Easy 1,125, Medium 2,500 aur Hard 1,920. Expanded bank ka full C++ runtime verification abhi pending hai. Naye computer par runner aur physical microphone ka live check alag se karein.
 
 ## Troubleshooting
 

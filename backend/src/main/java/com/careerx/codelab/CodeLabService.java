@@ -83,6 +83,7 @@ public class CodeLabService {
     // Editorial and hints are fetched explicitly, not leaked with the description.
     ((com.fasterxml.jackson.databind.node.ObjectNode)statement).remove(List.of("approach","complexity","hints"));
     q.put("statement",statement);
+    q.put("totalQuestions",db.count("SELECT COUNT(*) FROM code_questions"));
     q.put("examples",db.list("SELECT input_text AS input, expected_text AS output FROM code_test_cases WHERE question_id=? AND sample=true ORDER BY position",id));
     q.put("starter",db.one("SELECT starter FROM code_solutions WHERE question_id=? AND language_id=?",id,language).get("starter"));
     var drafts=db.list("SELECT source_code AS code,revision,updated_at FROM code_drafts WHERE user_id=? AND question_id=? AND language_id=?",uid,id,language);
@@ -168,7 +169,8 @@ public class CodeLabService {
         db.one("SELECT id FROM app_users WHERE id=? FOR UPDATE",uid);
         int questionId=((Number)db.one("SELECT question_id FROM code_submissions WHERE id=?",id).get("question_id")).intValue();
         boolean firstSolve=verdict.equals("ACCEPTED")&&owner.get("mode").equals("SUBMIT")&&!db.exists("SELECT 1 FROM code_submissions WHERE user_id=? AND question_id=? AND mode='SUBMIT' AND status='ACCEPTED' AND id<>?",uid,questionId,id);
-        db.exec("UPDATE code_submissions SET status=?,passed=?,finished_at=CURRENT_TIMESTAMP WHERE id=?",verdict,passedCount,id);
+        // Activity interprets this timestamp as a UTC wall time, including on local H2 setups.
+        db.exec("UPDATE code_submissions SET status=?,passed=?,finished_at=? WHERE id=?",verdict,passedCount,LocalDateTime.now(ZoneOffset.UTC),id);
         var awards=verdict.equals("ACCEPTED")&&owner.get("mode").equals("SUBMIT")?achievements.coding(uid):List.of();
         int coins=db.count("SELECT COUNT(DISTINCT question_id) FROM code_submissions WHERE user_id=? AND mode='SUBMIT' AND status='ACCEPTED'",uid);
         db.exec("UPDATE code_submissions SET result_json=? WHERE id=?",db.text(Map.of("message",message,"cases",cases,"awards",awards,"coinsEarned",firstSolve?1:0,"coinBalance",coins)),id);

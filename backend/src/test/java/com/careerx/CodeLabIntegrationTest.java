@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.*;
 @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles("test")
 class CodeLabIntegrationTest {
  @Autowired MockMvc mvc; @Autowired Store db; @Autowired Tokens tokens; @Autowired ObjectMapper json;
+ @Autowired CodeLabSeed seed;
  @MockitoBean CodeRunner runner;
  static final String ORIGIN="http://localhost:5173";
  record Account(String id,Cookie cookie) {}
@@ -34,22 +35,69 @@ class CodeLabIntegrationTest {
  void sumRunner()throws Exception{when(runner.execute(anyString(),anyString(),anyList())).thenAnswer(call->{List<String>inputs=call.getArgument(2);return inputs.stream().map(s->{String[]values=s.trim().split("\\s+");long sum=0;for(int i=1;i<values.length;i++)sum+=Long.parseLong(values[i]);return new CodeRunner.Execution(3,"  "+sum+"\n", "","",.02,1000);}).toList();});}
  JsonNode finish(Account a,String id)throws Exception{for(int i=0;i<120;i++){JsonNode r=body(getAs(a,"/submissions/"+id).andExpect(status().isOk()));if(!Set.of("QUEUED","RUNNING").contains(r.path("status").asText()))return r;Thread.sleep(30);}fail("Job did not complete");return null;}
 
- @Test void catalogContainsFiftyOriginalProblemsAndExactlyThreeLanguages()throws Exception{
-  Account a=account();JsonNode list=body(getAs(a,"/questions").andExpect(status().isOk()));assertEquals(50,list.path("total").asInt());assertEquals(12,list.path("questions").size());
-  assertEquals(50,db.count("SELECT COUNT(*) FROM code_questions"));assertEquals(150,db.count("SELECT COUNT(*) FROM code_solutions"));assertEquals(300,db.count("SELECT COUNT(*) FROM code_test_cases"));
+ @Test void catalogContainsOriginalAndAppendedProblemsWithExactlyThreeLanguages()throws Exception{
+  Account a=account();JsonNode list=body(getAs(a,"/questions").andExpect(status().isOk()));assertEquals(100,list.path("total").asInt());assertEquals(12,list.path("questions").size());
+  assertEquals(100,db.count("SELECT COUNT(*) FROM code_questions"));assertEquals(300,db.count("SELECT COUNT(*) FROM code_solutions"));assertTrue(db.count("SELECT COUNT(*) FROM code_test_cases")>=600);
+  assertEquals(50,db.count("SELECT COUNT(*) FROM code_questions WHERE id BETWEEN 1 AND 50"));
+  assertEquals(15,db.count("SELECT COUNT(*) FROM code_questions WHERE id BETWEEN 51 AND 100 AND difficulty='Easy'"));
+  assertEquals(25,db.count("SELECT COUNT(*) FROM code_questions WHERE id BETWEEN 51 AND 100 AND difficulty='Medium'"));
+  assertEquals(10,db.count("SELECT COUNT(*) FROM code_questions WHERE id BETWEEN 51 AND 100 AND difficulty='Hard'"));
+  assertEquals(0,db.count("SELECT COUNT(*) FROM code_questions q WHERE (SELECT COUNT(*) FROM code_test_cases t WHERE t.question_id=q.id)<6"));
+  assertEquals(0,db.count("SELECT COUNT(*) FROM code_questions q WHERE (SELECT COUNT(*) FROM code_test_cases t WHERE t.question_id=q.id AND t.sample=true)<>2"));
+  assertEquals(0,db.count("SELECT COUNT(*) FROM code_solutions WHERE language_id NOT IN ('java','cpp','python') OR TRIM(solution)=''"));
+  assertEquals(100,list.path("progress").path("total").asInt());
   assertEquals(3,body(getAs(a,"/status")).path("languages").size());
   getAs(a,"/questions/1?language=ruby").andExpect(status().isBadRequest());
   assertTrue(body(getAs(a,"/questions?difficulty=Hard")).path("total").asInt()>0);
+ }
+ @Test @org.springframework.transaction.annotation.Transactional
+ void seedAppendsAndCanRestartWithoutChangingOriginalContentOrProgress()throws Exception{
+  Account a=account();save(a,1,"python","saved_answer = 19",0).andExpect(status().isOk());
+  recorded(a,1,"python","SUBMIT","ACCEPTED","2024-02-29 10:00:00");
+  // Persist distinctive historical content so an accidental upsert is observable.
+  db.exec("UPDATE code_questions SET title=? WHERE id=1","Previously stored original title");
+  db.exec("UPDATE code_solutions SET solution=? WHERE question_id=1 AND language_id='python'","# Previously stored original solution\nprint(19)\n");
+  db.exec("UPDATE code_test_cases SET input_text=?,expected_text=? WHERE question_id=1 AND position=2","1\n19\n","19\n");
+  var originalQuestions=db.list("SELECT * FROM code_questions WHERE id<=50 ORDER BY id");
+  var originalSolutions=db.list("SELECT * FROM code_solutions WHERE question_id<=50 ORDER BY question_id,language_id");
+  var originalTests=db.list("SELECT * FROM code_test_cases WHERE question_id<=50 ORDER BY question_id,position");
+  var drafts=db.list("SELECT * FROM code_drafts WHERE user_id=? ORDER BY question_id,language_id",a.id());
+  var submissions=db.list("SELECT * FROM code_submissions WHERE user_id=? ORDER BY id",a.id());
+  int expectedCases=db.count("SELECT COUNT(*) FROM code_test_cases");
+  // Recreate the pre-expansion catalog inside this rolled-back test transaction.
+  db.exec("DELETE FROM code_drafts WHERE question_id>50");
+  db.exec("DELETE FROM code_submissions WHERE question_id>50");
+  db.exec("DELETE FROM code_test_cases WHERE question_id>50");
+  db.exec("DELETE FROM code_solutions WHERE question_id>50");
+  db.exec("DELETE FROM code_questions WHERE id>50");
+  assertEquals(50,db.count("SELECT COUNT(*) FROM code_questions"));
+  for(int restart=0;restart<2;restart++){
+   seed.run(new org.springframework.boot.DefaultApplicationArguments(new String[0]));
+   assertEquals(100,db.count("SELECT COUNT(*) FROM code_questions"));
+   assertEquals(300,db.count("SELECT COUNT(*) FROM code_solutions"));
+   assertEquals(expectedCases,db.count("SELECT COUNT(*) FROM code_test_cases"));
+   assertEquals(50,db.count("SELECT COUNT(*) FROM code_questions WHERE id BETWEEN 51 AND 100"));
+   assertEquals(originalQuestions,db.list("SELECT * FROM code_questions WHERE id<=50 ORDER BY id"));
+   assertEquals(originalSolutions,db.list("SELECT * FROM code_solutions WHERE question_id<=50 ORDER BY question_id,language_id"));
+   assertEquals(originalTests,db.list("SELECT * FROM code_test_cases WHERE question_id<=50 ORDER BY question_id,position"));
+   assertEquals(drafts,db.list("SELECT * FROM code_drafts WHERE user_id=? ORDER BY question_id,language_id",a.id()));
+   assertEquals(submissions,db.list("SELECT * FROM code_submissions WHERE user_id=? ORDER BY id",a.id()));
+   JsonNode detail=body(getAs(a,"/questions/1?language=python").andExpect(status().isOk()));
+   assertEquals(100,detail.path("totalQuestions").asInt());assertTrue(detail.path("solved").asBoolean());
+   assertEquals("saved_answer = 19",detail.path("draft").path("code").asText());
+   JsonNode progress=body(getAs(a,"/questions")).path("progress");assertEquals(100,progress.path("total").asInt());assertEquals(1,progress.path("solved").asInt());
+  }
  }
  @Test void searchMatchesTopicsTitlesAndAliasesAndCombinesWithFilters()throws Exception{
   Account a=account();
   JsonNode arrays=body(getAs(a,"/questions?search=%20ArRaY%20").andExpect(status().isOk()));
   assertTrue(arrays.path("total").asInt()>0);
-  for(JsonNode q:arrays.path("questions"))assertEquals("Arrays",q.path("topic").asText());
+  for(JsonNode q:arrays.path("questions"))assertTrue(q.path("topic").asText().equals("Arrays")||q.path("title").asText().toLowerCase(Locale.ROOT).contains("array"));
   JsonNode dp=body(getAs(a,"/questions?search=DP").andExpect(status().isOk()));
   assertTrue(dp.path("total").asInt()>0);
   for(JsonNode q:dp.path("questions"))assertEquals("Dynamic programming",q.path("topic").asText());
-  assertEquals(1,body(getAs(a,"/questions?search=BinarySearch&difficulty=Hard")).path("total").asInt());
+  JsonNode hardSearch=body(getAs(a,"/questions?search=BinarySearch&difficulty=Hard"));assertTrue(hardSearch.path("total").asInt()>0);
+  for(JsonNode q:hardSearch.path("questions")){assertEquals("Binary search",q.path("topic").asText());assertEquals("Hard",q.path("difficulty").asText());}
   assertEquals(1,body(getAs(a,"/questions?search=Pair%20Budget&topic=Hashing")).path("total").asInt());
   assertEquals(0,body(getAs(a,"/questions?search=%25")).path("total").asInt());
  }
@@ -58,6 +106,28 @@ class CodeLabIntegrationTest {
   JsonNode q=body(getAs(other,"/questions/1?language=python"));assertTrue(q.path("draft").isNull());assertEquals(2,q.path("examples").size());assertFalse(q.has("tests"));assertFalse(q.has("solution"));assertFalse(q.path("statement").has("approach"));
   assertFalse(q.toString().contains("my_private_variable"));assertTrue(body(getAs(owner,"/questions/1/solution?language=java")).path("code").asText().contains("class Main"));
   mvc.perform(get("/api/codelab/questions")).andExpect(status().isUnauthorized());
+ }
+ @Test @org.springframework.transaction.annotation.Transactional
+ void curatedReferenceMetadataIsPublicWhilePrivateJudgingDataStaysHidden()throws Exception{
+  Account a=account();
+  db.exec("UPDATE code_test_cases SET input_text=?,expected_text=? WHERE question_id=51 AND sample=false",
+   "PRIVATE_INPUT_"+a.id(),"PRIVATE_EXPECTED_"+a.id());
+  JsonNode q=body(getAs(a,"/questions/51?language=python").andExpect(status().isOk()));
+  assertEquals(51,q.path("id").asInt());assertEquals("Two Sum",q.path("title").asText());assertEquals(100,q.path("totalQuestions").asInt());
+  JsonNode reference=q.path("statement").path("reference");
+  Set<String> referenceFields=new HashSet<>();reference.fieldNames().forEachRemaining(referenceFields::add);
+  assertEquals(Set.of("title","url","leetcodeId"),referenceFields);
+  assertEquals("Two Sum",reference.path("title").asText());assertEquals(1,reference.path("leetcodeId").asInt());
+  assertEquals("https://leetcode.com/problems/two-sum/",reference.path("url").asText());
+  Set<String> statementFields=new HashSet<>();q.path("statement").fieldNames().forEachRemaining(statementFields::add);
+  assertEquals(Set.of("description","inputFormat","outputFormat","constraints","reference"),statementFields);
+  assertEquals(2,q.path("examples").size());assertFalse(q.has("tests"));assertFalse(q.has("solution"));assertFalse(q.has("checker"));
+  assertFalse(q.toString().contains("PRIVATE_INPUT_"));assertFalse(q.toString().contains("PRIVATE_EXPECTED_"));
+  for(JsonNode example:q.path("examples")){
+   Set<String> fields=new HashSet<>();example.fieldNames().forEachRemaining(fields::add);assertEquals(Set.of("input","output"),fields);
+  }
+  JsonNode old=body(getAs(a,"/questions/1?language=java").andExpect(status().isOk()));
+  assertEquals(100,old.path("totalQuestions").asInt());assertFalse(old.path("statement").has("reference"));
  }
  @Test void draftsPersistPerUserProblemAndLanguageWithRevisionProtection()throws Exception{
   Account a=account();save(a,1,"java","class Main {}",0).andExpect(status().isOk());save(a,1,"python","print(5)",0).andExpect(status().isOk());
@@ -73,7 +143,11 @@ class CodeLabIntegrationTest {
   assertEquals(0,run.path("result").path("awards").size());
   assertEquals(0,run.path("result").path("coinsEarned").asInt());
   assertEquals(0,body(getAs(a,"/questions")).path("progress").path("solved").asInt());
+  var beforeSubmission=java.time.LocalDateTime.now(java.time.ZoneOffset.UTC);
   String id=body(submit(a,"cpp","SUBMIT",source,db.id())).path("id").asText();JsonNode result=finish(a,id);assertEquals("ACCEPTED",result.path("status").asText());assertEquals(6,result.path("total").asInt());
+  var completed=((java.sql.Timestamp)db.one("SELECT finished_at FROM code_submissions WHERE id=?",id).get("finished_at")).toLocalDateTime();
+  assertFalse(completed.isBefore(beforeSubmission.minusSeconds(1)),"Completion timestamps must use UTC wall time");
+  assertFalse(completed.isAfter(java.time.LocalDateTime.now(java.time.ZoneOffset.UTC).plusSeconds(1)),"Local database time must not shift a solve into tomorrow");
   assertEquals("learning-first",result.path("result").path("awards").get(0).path("id").asText());
   assertEquals(1,result.path("result").path("coinsEarned").asInt());assertEquals(1,result.path("result").path("coinBalance").asInt());
   JsonNode repeat=finish(a,body(submit(a,"java","SUBMIT",source,db.id())).path("id").asText());

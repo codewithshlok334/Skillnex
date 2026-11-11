@@ -1,0 +1,352 @@
+[
+  {
+    "skillnexId": 51,
+    "leetcodeId": 1,
+    "title": "Two Sum",
+    "difficulty": "Easy",
+    "url": "https://leetcode.com/problems/two-sum/"
+  },
+  {
+    "skillnexId": 52,
+    "leetcodeId": 217,
+    "title": "Contains Duplicate",
+    "difficulty": "Easy",
+    "url": "https://leetcode.com/problems/contains-duplicate/"
+  },
+  {
+    "skillnexId": 53,
+    "leetcodeId": 242,
+    "title": "Valid Anagram",
+    "difficulty": "Easy",
+    "url": "https://leetcode.com/problems/valid-anagram/"
+  },
+  {
+    "skillnexId": 54,
+    "leetcodeId": 121,
+    "title": "Best Time to Buy and Sell Stock",
+    "difficulty": "Easy",
+    "url": "https://leetcode.com/problems/best-time-to-buy-and-sell-stock/"
+  },
+  {
+    "skillnexId": 55,
+    "leetcodeId": 125,
+    "title": "Valid Palindrome",
+    "difficulty": "Easy",
+    "url": "https://leetcode.com/problems/valid-palindrome/"
+  },
+  {
+    "skillnexId": 56,
+    "leetcodeId": 704,
+    "title": "Binary Search",
+    "difficulty": "Easy",
+    "url": "https://leetcode.com/problems/binary-search/"
+  },
+  {
+    "skillnexId": 57,
+    "leetcodeId": 283,
+    "title": "Move Zeroes",
+    "difficulty": "Easy",
+    "url": "https://leetcode.com/problems/move-zeroes/"
+  },
+  {
+    "skillnexId": 58,
+    "leetcodeId": 169,
+    "title": "Majority Element",
+    "difficulty": "Easy",
+    "url": "https://leetcode.com/problems/majority-element/"
+  },
+  {
+    "skillnexId": 59,
+    "leetcodeId": 136,
+    "title": "Single Number",
+    "difficulty": "Easy",
+    "url": "https://leetcode.com/problems/single-number/"
+  },
+  {
+    "skillnexId": 60,
+    "leetcodeId": 20,
+    "title": "Valid Parentheses",
+    "difficulty": "Easy",
+    "url": "https://leetcode.com/problems/valid-parentheses/"
+  },
+  {
+    "skillnexId": 61,
+    "leetcodeId": 206,
+    "title": "Reverse Linked List",
+    "difficulty": "Easy",
+    "url": "https://leetcode.com/problems/reverse-linked-list/"
+  },
+  {
+    "skillnexId": 62,
+    "leetcodeId": 21,
+    "title": "Merge Two Sorted Lists",
+    "difficulty": "Easy",
+    "url": "https://leetcode.com/problems/merge-two-sorted-lists/"
+  },
+  {
+    "skillnexId": 63,
+    "leetcodeId": 141,
+    "title": "Linked List Cycle",
+    "difficulty": "Easy",
+    "url": "https://leetcode.com/problems/linked-list-cycle/"
+  },
+  {
+    "skillnexId": 64,
+    "leetcodeId": 226,
+    "title": "Invert Binary Tree",
+    "difficulty": "Easy",
+    "url": "https://leetcode.com/problems/invert-binary-tree/"
+  },
+  {
+    "skillnexId": 65,
+    "leetcodeId": 104,
+    "title": "Maximum Depth of Binary Tree",
+    "difficulty": "Easy",
+    "url": "https://leetcode.com/problems/maximum-depth-of-binary-tree/"
+  },
+  {
+    "skillnexId": 66,
+    "leetcodeId": 3,
+    "title": "Longest Substring Without Repeating Characters",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/longest-substring-without-repeating-characters/"
+  },
+  {
+    "skillnexId": 67,
+    "leetcodeId": 49,
+    "title": "Group Anagrams",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/group-anagrams/"
+  },
+  {
+    "skillnexId": 68,
+    "leetcodeId": 15,
+    "title": "3Sum",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/3sum/"
+  },
+  {
+    "skillnexId": 69,
+    "leetcodeId": 11,
+    "title": "Container With Most Water",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/container-with-most-water/"
+  },
+  {
+    "skillnexId": 70,
+    "leetcodeId": 238,
+    "title": "Product of Array Except Self",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/product-of-array-except-self/"
+  },
+  {
+    "skillnexId": 71,
+    "leetcodeId": 347,
+    "title": "Top K Frequent Elements",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/top-k-frequent-elements/"
+  },
+  {
+    "skillnexId": 72,
+    "leetcodeId": 128,
+    "title": "Longest Consecutive Sequence",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/longest-consecutive-sequence/"
+  },
+  {
+    "skillnexId": 73,
+    "leetcodeId": 33,
+    "title": "Search in Rotated Sorted Array",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/search-in-rotated-sorted-array/"
+  },
+  {
+    "skillnexId": 74,
+    "leetcodeId": 153,
+    "title": "Find Minimum in Rotated Sorted Array",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/"
+  },
+  {
+    "skillnexId": 75,
+    "leetcodeId": 56,
+    "title": "Merge Intervals",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/merge-intervals/"
+  },
+  {
+    "skillnexId": 76,
+    "leetcodeId": 57,
+    "title": "Insert Interval",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/insert-interval/"
+  },
+  {
+    "skillnexId": 77,
+    "leetcodeId": 55,
+    "title": "Jump Game",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/jump-game/"
+  },
+  {
+    "skillnexId": 78,
+    "leetcodeId": 198,
+    "title": "House Robber",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/house-robber/"
+  },
+  {
+    "skillnexId": 79,
+    "leetcodeId": 322,
+    "title": "Coin Change",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/coin-change/"
+  },
+  {
+    "skillnexId": 80,
+    "leetcodeId": 300,
+    "title": "Longest Increasing Subsequence",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/longest-increasing-subsequence/"
+  },
+  {
+    "skillnexId": 81,
+    "leetcodeId": 139,
+    "title": "Word Break",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/word-break/"
+  },
+  {
+    "skillnexId": 82,
+    "leetcodeId": 46,
+    "title": "Permutations",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/permutations/"
+  },
+  {
+    "skillnexId": 83,
+    "leetcodeId": 78,
+    "title": "Subsets",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/subsets/"
+  },
+  {
+    "skillnexId": 84,
+    "leetcodeId": 39,
+    "title": "Combination Sum",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/combination-sum/"
+  },
+  {
+    "skillnexId": 85,
+    "leetcodeId": 200,
+    "title": "Number of Islands",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/number-of-islands/"
+  },
+  {
+    "skillnexId": 86,
+    "leetcodeId": 994,
+    "title": "Rotting Oranges",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/rotting-oranges/"
+  },
+  {
+    "skillnexId": 87,
+    "leetcodeId": 102,
+    "title": "Binary Tree Level Order Traversal",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/binary-tree-level-order-traversal/"
+  },
+  {
+    "skillnexId": 88,
+    "leetcodeId": 98,
+    "title": "Validate Binary Search Tree",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/validate-binary-search-tree/"
+  },
+  {
+    "skillnexId": 89,
+    "leetcodeId": 230,
+    "title": "Kth Smallest Element in a BST",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/kth-smallest-element-in-a-bst/"
+  },
+  {
+    "skillnexId": 90,
+    "leetcodeId": 2,
+    "title": "Add Two Numbers",
+    "difficulty": "Medium",
+    "url": "https://leetcode.com/problems/add-two-numbers/"
+  },
+  {
+    "skillnexId": 91,
+    "leetcodeId": 42,
+    "title": "Trapping Rain Water",
+    "difficulty": "Hard",
+    "url": "https://leetcode.com/problems/trapping-rain-water/"
+  },
+  {
+    "skillnexId": 92,
+    "leetcodeId": 23,
+    "title": "Merge k Sorted Lists",
+    "difficulty": "Hard",
+    "url": "https://leetcode.com/problems/merge-k-sorted-lists/"
+  },
+  {
+    "skillnexId": 93,
+    "leetcodeId": 25,
+    "title": "Reverse Nodes in k-Group",
+    "difficulty": "Hard",
+    "url": "https://leetcode.com/problems/reverse-nodes-in-k-group/"
+  },
+  {
+    "skillnexId": 94,
+    "leetcodeId": 76,
+    "title": "Minimum Window Substring",
+    "difficulty": "Hard",
+    "url": "https://leetcode.com/problems/minimum-window-substring/"
+  },
+  {
+    "skillnexId": 95,
+    "leetcodeId": 84,
+    "title": "Largest Rectangle in Histogram",
+    "difficulty": "Hard",
+    "url": "https://leetcode.com/problems/largest-rectangle-in-histogram/"
+  },
+  {
+    "skillnexId": 96,
+    "leetcodeId": 124,
+    "title": "Binary Tree Maximum Path Sum",
+    "difficulty": "Hard",
+    "url": "https://leetcode.com/problems/binary-tree-maximum-path-sum/"
+  },
+  {
+    "skillnexId": 97,
+    "leetcodeId": 297,
+    "title": "Serialize and Deserialize Binary Tree",
+    "difficulty": "Hard",
+    "url": "https://leetcode.com/problems/serialize-and-deserialize-binary-tree/"
+  },
+  {
+    "skillnexId": 98,
+    "leetcodeId": 212,
+    "title": "Word Search II",
+    "difficulty": "Hard",
+    "url": "https://leetcode.com/problems/word-search-ii/"
+  },
+  {
+    "skillnexId": 99,
+    "leetcodeId": 239,
+    "title": "Sliding Window Maximum",
+    "difficulty": "Hard",
+    "url": "https://leetcode.com/problems/sliding-window-maximum/"
+  },
+  {
+    "skillnexId": 100,
+    "leetcodeId": 295,
+    "title": "Find Median from Data Stream",
+    "difficulty": "Hard",
+    "url": "https://leetcode.com/problems/find-median-from-data-stream/"
+  }
+]

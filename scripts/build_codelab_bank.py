@@ -158,10 +158,18 @@ add('one-good-trade','One Good Trade','Arrays','Easy',
 
 if __name__ == '__main__':
     for part in sorted((ROOT/'scripts/codelab_bank').glob('*.py')):
+        if part.name == 'part5_easy.py':
+            CPP_HEAD = '#include <functional>\n#include <set>\n#include <map>\n#include <stack>\n#include <cmath>\n#include <iomanip>\n'+CPP_HEAD
         exec(compile(part.read_text(encoding='utf-8'),str(part),'exec'),globals())
-    assert len(BANK)==50, len(BANK)
-    assert len({q['slug'] for q in BANK})==50
+    assert len(BANK)==100, len(BANK)
+    assert len({q['slug'] for q in BANK})==len(BANK)
+    references=json.loads((ROOT/'scripts/codelab_bank/references.json').read_text(encoding='utf-8'))
+    for reference in references:
+        question=BANK[reference['skillnexId']-1]
+        assert question['title']==reference['title'], (question['title'],reference['title'])
+        assert question['difficulty']==reference['difficulty']
+        question['statement']['reference']={k:reference[k] for k in ('title','url','leetcodeId')}
     target=ROOT/'backend/src/main/resources/codelab/questions.json'
     target.parent.mkdir(parents=True,exist_ok=True)
-    target.write_text(json.dumps(BANK,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-    print(f'Wrote {len(BANK)} original questions, {len(BANK)*3} solutions, {sum(len(q["tests"]) for q in BANK)} test cases.')
+    target.write_text(json.dumps(BANK,ensure_ascii=False,indent=2)+'\n',encoding='utf-8',newline='\n')
+    print(f'Wrote {len(BANK)} questions, {len(BANK)*3} solutions, {sum(len(q["tests"]) for q in BANK)} test cases.')

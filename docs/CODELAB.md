@@ -4,15 +4,16 @@ CodeLab is a separate practice area at `/app/codelab`. It does not call the inte
 
 ## Included
 
-- 50 original DSA questions: arrays, linked lists, strings, hashing, two pointers, prefix sums, sliding windows, stacks, binary search, sorting, greedy algorithms, dynamic programming, graphs, trees and bit manipulation.
-- Exactly Java, C++ and Python. Each question has a complete starter, two examples, four hidden cases, progressive hints, an explanation and a reference solution in all three languages.
+- 100 DSA questions across arrays, linked lists, strings, hashing, two pointers, prefix sums, sliding windows, stacks, binary search, sorting, greedy algorithms, dynamic programming, graphs, trees and bit manipulation. Original IDs 1–50 are unchanged; IDs 51–100 add a classic reference set of 15 Easy, 25 Medium and 10 Hard problems.
+- Exactly Java, C++ and Python: 300 complete reference solutions and 661 test cases. Each question has starters, exactly two examples, a variable number of hidden cases, progressive hints and an explanation.
+- The new problems link to their official references in the UI and in [references.json](../scripts/codelab_bank/references.json). Descriptions, solutions and test cases are authored for SkillNex, with explicit standard-input/standard-output adapters rather than copied LeetCode function APIs.
 - Search by title or topic (including `DP` and `binarysearch` aliases), topic/level/progress filters, a syntax-highlighted editor, account-owned drafts per language, submission history and solved progress.
 - On desktop, the question stays on the left and the editor on the right, with independent scrolling. Narrow screens use Question/Code tabs.
 - The top Settings button includes Dark/Light appearance, editor font size, default language, indentation and line wrapping, plus account/profile/privacy/password recovery and logout controls. Appearance/editor preferences persist on the current browser. Drafts remain account-owned in the database. Changing the default language does not replace the active editor.
-- Run checks the two examples. Submit checks all six cases. Only an accepted **Submit** marks the question solved.
+- Run checks the two examples. Submit checks every example and hidden case for that question. Only an accepted **Submit** marks the question solved.
 - Each unique first accepted Submit immediately earns **1 SkillCoin**. Runs, wrong answers and repeat accepted submissions award no extra coin. Existing accepted problems count toward the total.
 - Profile progress includes current/best daily streaks and the green activity calendar. Shared achievement stickers unlock from CodeLab milestones or Aptitude mock scores, stay on the profile and trigger a 5.5-second celebration. Aptitude never awards SkillCoins. See [all reward criteria](APTITUDE-AND-ACHIEVEMENTS.md).
-- Programs read standard input and print their answer. Java uses `public class Main`; other variable names and implementation choices are unrestricted. Judging compares output tokens, not source code. Pair Budget accepts any valid pair of indices, in either order.
+- Programs read standard input and print their answer. Java uses `public class Main`; other variable names and implementation choices are unrestricted. Judging checks answers, not source code. Depending on the problem, checkers compare ordered tokens, accept any valid index pair, ignore result-row order, ignore group/member order, or compare token multisets. Each statement specifies the required format and which ordering is flexible.
 
 ## Run the application
 
@@ -53,7 +54,7 @@ V9 supports PostgreSQL and the existing local H2 profile. The root `compose.yml`
 
 ## Maintaining the bank
 
-The original authored source is in `scripts/build_codelab_bank.py` and `scripts/codelab_bank/`. Rebuild `backend/src/main/resources/codelab/questions.json` with:
+The authored source is in `scripts/build_codelab_bank.py` and `scripts/codelab_bank/`; official reference metadata is in `scripts/codelab_bank/references.json`. Rebuild `backend/src/main/resources/codelab/questions.json` with:
 
 ```powershell
 python scripts/build_codelab_bank.py
@@ -65,9 +66,11 @@ The loader inserts missing questions only. Editing an already-installed question
 
 ## Verification
 
-- Local runner integration: 15 focused backend tests passed (9 CodeLab, 2 Judge0 and 4 Piston). The Piston tests cover runtime availability, language/version pinning, resource limits, compile/runtime/timeout verdicts and malformed responses. The frontend build also passed. These tests do not substitute for live sandbox verification after Docker starts.
-- The 54-test backend suite passed before the additional topic-search test. The final focused suite passed all 11 CodeLab/runner tests on H2, and all 9 CodeLab integration tests passed on a separate PostgreSQL 17.11 cluster with migrations V1–V9. These cover ownership, drafts, stale revisions, invalid languages, search, Run vs Submit progress, idempotency, hidden-case privacy and failure verdicts.
-- Reference verification checks every authored example/hidden case against the Java/Python solutions and compile-checks all C++ solutions. Full C++ execution must also be checked on the connected sandbox; Windows Application Control blocked one generated native test executable on this development machine.
-- Live sandbox execution is a separate deployment check. A passing mocked adapter test does not prove an unconfigured runner is available.
+- Backend: 109 tests passed with the local Asia/Kolkata time zone, including append/restart retention, hidden-case privacy and UTC completion-time regression. Frontend: build and all 106 tests passed.
+
+- The new 50 questions passed 100 manually checked example assertions and 5,545 independent randomized checks: 1,125 Easy, 2,500 Medium and 1,920 Hard.
+- All 100 reference programs in each language passed their 661 stored cases: 1,983 executions across Java, C++ and Python. Java/Python ran locally; C++ ran on Judge0 CE in ten batches. All 100 original C++ sources also passed C++17 compile checks. The validator still distinguishes execution from its optional syntax-only checks.
+- CodeLab stores new completion times in UTC so local time zones do not shift today’s solve into tomorrow’s activity calendar.
+- Live sandbox execution remains a separate deployment check; reference checks do not prove that a newly configured runner is available.
 
 Before inviting users, connect the sandbox and check a correct program, wrong output, syntax error and infinite loop in all three languages; verify a saved draft remains after signing out and back in.
